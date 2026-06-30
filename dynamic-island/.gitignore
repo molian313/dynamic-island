@@ -1,0 +1,12 @@
+# Build artifacts
+src-tauri/target/
+
+# Frontend dist (built from source files)
+frontend/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# IDE
+.vscode/

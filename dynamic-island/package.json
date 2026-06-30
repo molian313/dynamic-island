@@ -1,0 +1,10 @@
+{
+  "name": "liquid-glass-island",
+  "version": "0.1.0",
+  "description": "Liquid Glass Dynamic Island",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build"
+  }
+}

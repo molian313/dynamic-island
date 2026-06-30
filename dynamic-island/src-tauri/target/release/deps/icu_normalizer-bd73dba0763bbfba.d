@@ -1,0 +1,10 @@
+D:\A\Desktop\jz\dynamic-island\src-tauri\target\release\deps\icu_normalizer-bd73dba0763bbfba.d: C:\Users\Administrator\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\icu_normalizer-2.2.0\src\lib.rs C:\Users\Administrator\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\icu_normalizer-2.2.0\src\properties.rs C:\Users\Administrator\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\icu_normalizer-2.2.0\src\provider.rs C:\Users\Administrator\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\icu_normalizer-2.2.0\src\uts46.rs
+
+D:\A\Desktop\jz\dynamic-island\src-tauri\target\release\deps\libicu_normalizer-bd73dba0763bbfba.rlib: C:\Users\Administrator\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\icu_normalizer-2.2.0\src\lib.rs C:\Users\Administrator\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\icu_normalizer-2.2.0\src\properties.rs C:\Users\Administrator\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\icu_normalizer-2.2.0\src\provider.rs C:\Users\Administrator\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\icu_normalizer-2.2.0\src\uts46.rs
+
+D:\A\Desktop\jz\dynamic-island\src-tauri\target\release\deps\libicu_normalizer-bd73dba0763bbfba.rmeta: C:\Users\Administrator\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\icu_normalizer-2.2.0\src\lib.rs C:\Users\Administrator\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\icu_normalizer-2.2.0\src\properties.rs C:\Users\Administrator\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\icu_normalizer-2.2.0\src\provider.rs C:\Users\Administrator\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\icu_normalizer-2.2.0\src\uts46.rs
+
+C:\Users\Administrator\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\icu_normalizer-2.2.0\src\lib.rs:
+C:\Users\Administrator\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\icu_normalizer-2.2.0\src\properties.rs:
+C:\Users\Administrator\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\icu_normalizer-2.2.0\src\provider.rs:
+C:\Users\Administrator\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\icu_normalizer-2.2.0\src\uts46.rs:

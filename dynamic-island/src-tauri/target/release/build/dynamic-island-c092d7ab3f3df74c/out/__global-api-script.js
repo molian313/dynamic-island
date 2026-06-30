@@ -1,0 +1,1 @@
+["\\\\?\\C:\\Users\\Administrator\\.cargo\\registry\\src\\rsproxy.cn-e3de039b2554c837\\tauri-2.11.4\\scripts\\bundle.global.js","\\\\?\\C:\\Users\\Administrator\\.cargo\\registry\\src\\rsproxy.cn-e3de039b2554c837\\tauri-plugin-shell-2.3.5\\api-iife.js"]
