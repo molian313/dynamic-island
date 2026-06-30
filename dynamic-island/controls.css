@@ -1,0 +1,415 @@
+#controls-panel {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  width: 320px;
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  background: rgba(10, 10, 12, 0.92);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  color: #e0e0e0;
+  z-index: 100;
+  padding: 0;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s;
+}
+#controls-panel.hidden {
+  transform: translateX(340px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Toggle button */
+#controls-toggle {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  background: rgba(10, 10, 12, 0.85);
+  backdrop-filter: blur(12px);
+  color: rgba(255,255,255,0.7);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 101;
+  transition: background 0.2s, color 0.2s, opacity 0.2s;
+}
+#controls-toggle:hover {
+  background: rgba(30, 30, 36, 0.95);
+  color: #fff;
+}
+#controls-toggle.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Header */
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.panel-header h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+.panel-header button {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.4);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  font-size: 16px;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+}
+.panel-header button:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.08);
+}
+
+/* Presets and save buttons */
+.panel-actions {
+  display: flex;
+  gap: 6px;
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.panel-actions button {
+  flex: 1;
+  padding: 6px 0;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.05);
+  color: #ccc;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.panel-actions button:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  border-color: rgba(255,255,255,0.2);
+}
+.panel-actions button.primary {
+  background: rgba(80, 140, 255, 0.15);
+  border-color: rgba(80, 140, 255, 0.3);
+  color: #8ab4ff;
+}
+.panel-actions button.primary:hover {
+  background: rgba(80, 140, 255, 0.25);
+  border-color: rgba(80, 140, 255, 0.5);
+}
+
+/* Save indicator */
+.save-indicator {
+  padding: 4px 14px;
+  font-size: 11px;
+  color: rgba(120, 255, 120, 0.8);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.save-indicator.show {
+  opacity: 1;
+}
+
+/* Folder / Section */
+.ctrl-folder {
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.ctrl-folder-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+.ctrl-folder-header:hover {
+  background: rgba(255,255,255,0.03);
+}
+.ctrl-folder-header .arrow {
+  font-size: 10px;
+  color: rgba(255,255,255,0.3);
+  transition: transform 0.2s;
+  width: 12px;
+  text-align: center;
+}
+.ctrl-folder-header.open .arrow {
+  transform: rotate(90deg);
+}
+.ctrl-folder-header .folder-name {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.5);
+}
+.ctrl-folder-body {
+  display: none;
+  padding: 2px 14px 8px;
+}
+.ctrl-folder-body.open {
+  display: block;
+}
+
+/* Control row */
+.ctrl-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.ctrl-row label {
+  flex: 0 0 0;
+  white-space: nowrap;
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+  min-width: 80px;
+}
+.ctrl-row input[type="range"] {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+.ctrl-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #508cff;
+  border: 2px solid #fff;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+.ctrl-row input[type="number"] {
+  width: 56px;
+  padding: 3px 6px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  color: #ddd;
+  font-size: 11px;
+  text-align: right;
+  outline: none;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+}
+.ctrl-row input[type="number"]:focus {
+  border-color: rgba(80, 140, 255, 0.5);
+  background: rgba(80, 140, 255, 0.06);
+}
+
+/* Checkbox row */
+.ctrl-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #508cff;
+  cursor: pointer;
+}
+.ctrl-row .check-label {
+  flex: 1;
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+}
+
+/* Color row (tint) */
+.ctrl-color-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.ctrl-color-row label {
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+  min-width: 80px;
+}
+.ctrl-color-row input[type="color"] {
+  width: 28px;
+  height: 28px;
+  border: 2px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 0;
+  background: none;
+}
+.ctrl-color-row input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+.ctrl-color-row input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 4px;
+}
+
+/* BgType select */
+.ctrl-row select {
+  flex: 1;
+  padding: 4px 8px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  color: #ddd;
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+}
+.ctrl-row select:focus {
+  border-color: rgba(80, 140, 255, 0.5);
+}
+
+/* Shadow position (two sliders in one row) */
+.ctrl-sub-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.ctrl-sub-row span.sub-label {
+  font-size: 11px;
+  color: rgba(255,255,255,0.35);
+  min-width: 14px;
+}
+
+/* Preset dropdown */
+#preset-select {
+  width: 100%;
+  padding: 6px 8px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  color: #ddd;
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+#preset-select option {
+  background: #1a1a1e;
+}
+
+/* Save preset name input */
+.save-preset-row {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px 8px;
+}
+.save-preset-row.show {
+  display: flex;
+}
+.save-preset-row input[type="text"] {
+  flex: 1;
+  padding: 5px 8px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  color: #ddd;
+  font-size: 12px;
+  outline: none;
+}
+.save-preset-row input[type="text"]:focus {
+  border-color: rgba(80, 140, 255, 0.5);
+}
+.save-preset-row button {
+  padding: 5px 12px;
+  background: rgba(80, 140, 255, 0.2);
+  border: 1px solid rgba(80, 140, 255, 0.3);
+  border-radius: 6px;
+  color: #8ab4ff;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.save-preset-row button:hover {
+  background: rgba(80, 140, 255, 0.35);
+}
+
+/* Load preset dropdown area */
+.load-preset-row {
+  display: none;
+  padding: 4px 14px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.load-preset-row.show {
+  display: block;
+}
+
+/* Upload hint */
+.upload-hint {
+  font-size: 11px;
+  color: rgba(80, 140, 255, 0.8);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+}
+.upload-hint:hover {
+  color: #8ab4ff;
+}
+
+/* Tint alpha row */
+.ctrl-alpha-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.ctrl-alpha-row label {
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+  min-width: 80px;
+}
+.ctrl-alpha-row input[type="range"] {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+.ctrl-alpha-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #508cff;
+  border: 2px solid #fff;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+.ctrl-alpha-row input[type="number"] {
+  width: 56px;
+  padding: 3px 6px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  color: #ddd;
+  font-size: 11px;
+  text-align: right;
+  outline: none;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+}
