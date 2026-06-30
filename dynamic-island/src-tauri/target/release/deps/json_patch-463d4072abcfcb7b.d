@@ -1,8 +1,0 @@
-D:\A\Desktop\jz\dynamic-island\src-tauri\target\release\deps\json_patch-463d4072abcfcb7b.d: C:\Users\Administrator\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\json-patch-3.0.1\src\lib.rs C:\Users\Administrator\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\json-patch-3.0.1\src\diff.rs
-
-D:\A\Desktop\jz\dynamic-island\src-tauri\target\release\deps\libjson_patch-463d4072abcfcb7b.rlib: C:\Users\Administrator\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\json-patch-3.0.1\src\lib.rs C:\Users\Administrator\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\json-patch-3.0.1\src\diff.rs
-
-D:\A\Desktop\jz\dynamic-island\src-tauri\target\release\deps\libjson_patch-463d4072abcfcb7b.rmeta: C:\Users\Administrator\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\json-patch-3.0.1\src\lib.rs C:\Users\Administrator\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\json-patch-3.0.1\src\diff.rs
-
-C:\Users\Administrator\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\json-patch-3.0.1\src\lib.rs:
-C:\Users\Administrator\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\json-patch-3.0.1\src\diff.rs:
