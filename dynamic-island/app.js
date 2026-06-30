@@ -86,6 +86,7 @@
   let isDragging = false;
   let isHovering = false;
   let isCompactMode = false;  // toggled by double-click on right island
+  let isTauriMode = !!window.__TAURI__;
   // Current animated sizes (lerp towards target)
   let animWidth = 140, animHeight = 50;
   let anim1Width = 50, anim1Height = 50;
@@ -106,6 +107,10 @@
   let bgTexture = null;
   let bgTextureRatio = 1;
   let bgTextureReady = false;
+  // Screen capture texture (set from Tauri initTauriMode)
+  let screenCapTexture = null;
+  let screenCapRatio = 1;
+  let screenCapReady = false;
 
   // ---------------------------------------------------------------------------
   // Gaussian kernel — exact copy from src/utils/index.ts
@@ -417,23 +422,36 @@
     gl.uniform1f(bgU.u_shape1Radius, uShape1Radius);
     gl.uniform2f(bgU.u_shape1Center, shape1CenterX, shape1CenterY);
     gl.uniform1f(bgU.u_shadowExpand, C.shadowExpand);
-    gl.uniform1f(bgU.u_shadowFactor, C.shadowFactor / 100);     // /100 like original
-    gl.uniform2f(bgU.u_shadowPosition, -C.shadowPosition.x, -C.shadowPosition.y); // negated like original
+    gl.uniform1f(bgU.u_shadowFactor, C.shadowFactor / 100);
+    gl.uniform2f(bgU.u_shadowPosition, -C.shadowPosition.x, -C.shadowPosition.y);
     gl.uniform1i(bgU.u_bgType, C.bgType);
     gl.uniform1i(bgU.u_showShape1, uShowShape1);
 
-    // Background texture
-    if (bgTexture && bgTextureReady) {
+    // Background texture (prefer screen capture in Tauri mode)
+    var activeBgTex = null, activeBgRatio = 1, activeBgReady = false;
+    if (isTauriMode && screenCapTexture && screenCapReady) {
+      activeBgTex = screenCapTexture;
+      activeBgRatio = screenCapRatio;
+      activeBgReady = true;
+    } else if (bgTexture && bgTextureReady) {
+      activeBgTex = bgTexture;
+      activeBgRatio = bgTextureRatio;
+      activeBgReady = true;
+    }
+    if (activeBgReady) {
       gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, bgTexture);
+      gl.bindTexture(gl.TEXTURE_2D, activeBgTex);
       gl.uniform1i(bgU.u_bgTexture, 0);
-      gl.uniform1f(bgU.u_bgTextureRatio, bgTextureRatio);
+      gl.uniform1f(bgU.u_bgTextureRatio, activeBgRatio);
       gl.uniform1i(bgU.u_bgTextureReady, 1);
+      // Override bgType to custom texture mode when screen capture is active
+      if (isTauriMode && screenCapReady) {
+        gl.uniform1i(bgU.u_bgType, 11);
+      }
     } else {
       gl.uniform1i(bgU.u_bgTextureReady, 0);
     }
 
-    // Also set blur weights on bg pass (the original renderer does this globally)
     for (var i = 0; i <= C.blurRadius && i < blurWeights.length; i++) {
       gl.uniform1f(bgU['u_blurWeights[' + i + ']'], blurWeights[i]);
     }
@@ -524,6 +542,7 @@
     gl.uniform1f(mainU.u_glareFactor, C.glareFactor / 100);              // /100
     gl.uniform1i(mainU.u_blurEdge, C.blurEdge ? 1 : 0);
     gl.uniform1i(mainU.STEP, C.step);
+    gl.uniform1i(mainU.u_tauriMode, isTauriMode ? 1 : 0);
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
@@ -534,12 +553,14 @@
   // Init
   // ---------------------------------------------------------------------------
   function init() {
+    isTauriMode = !!window.__TAURI__;
     canvas = document.getElementById('glCanvas');
 
     gl = canvas.getContext('webgl2', {
       preserveDrawingBuffer: true,
       antialias: false,
-      alpha: false,
+      alpha: isTauriMode ? true : false,
+      premultipliedAlpha: false,
     });
 
     if (!gl) {
@@ -601,7 +622,7 @@
         'u_shape1Center',
         'u_shadowExpand', 'u_shadowFactor',
         'u_shadowPosition', 'u_bgType', 'u_bgTexture', 'u_bgTextureRatio',
-        'u_bgTextureReady', 'u_showShape1', 'u_blurRadius',
+        'u_bgTextureReady', 'u_showShape1', 'u_blurRadius', 'u_tauriMode',
       ].concat(blurWeightNames));
 
       vblurU = cacheUniforms(gl, vblurProgram, [
@@ -781,6 +802,7 @@
   window.__liquidGlassState = {
     isHovering: function() { return isHovering; },
     setHover: function(v) { isHovering = v; },
+    setScreenTexture: function(tex, ratio) { screenCapTexture = tex; screenCapRatio = ratio; screenCapReady = true; },
     isCompactMode: function() { return isCompactMode; },
     setCompactMode: function(v) { isCompactMode = v; },
     animWidth: function() { return animWidth; },

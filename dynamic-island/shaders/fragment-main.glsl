@@ -41,6 +41,7 @@ uniform int u_blurEdge;
 uniform int u_showShape1;
 
 uniform int STEP;
+uniform int u_tauriMode;
 
 out vec4 fragColor;
 
@@ -776,6 +777,12 @@ void main() {
     // smooth
     outColor = mix(outColor, texture(u_bg, v_uv), smoothstep(-0.001, 0.001, merged));
 
+  }
+
+  // Tauri mode: make outside-island pixels transparent
+  if (u_tauriMode == 1 && merged > 0.01) {
+    float edge = smoothstep(0.0, 0.003, merged);
+    outColor.a *= 1.0 - edge;
   }
 
   fragColor = outColor;

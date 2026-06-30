@@ -1,8 +1,9 @@
+mod screencap;
 mod sysinfo;
 mod types;
 mod window;
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use tauri::Manager;
 use tauri::menu::{MenuBuilder, MenuItemBuilder};
@@ -10,6 +11,7 @@ use tauri::tray::TrayIconBuilder;
 use tauri::image::Image;
 
 use sysinfo::get_system_stats;
+use screencap::capture_screen;
 
 fn create_tray_icon() -> Vec<u8> {
     let (size, center, radius) = (32u32, 16.0, 12.0);
@@ -35,6 +37,7 @@ pub fn run() {
         .manage(window::DebugClickState(debug_click_state.clone()))
         .invoke_handler(tauri::generate_handler![
             get_system_stats,
+            capture_screen,
         ])
         .setup(move |app| {
             let window = app.get_webview_window("main").unwrap();

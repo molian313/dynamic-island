@@ -229,6 +229,46 @@
       updateSysInfo();
       setInterval(updateSysInfo, 1500);
 
+      // Screen capture for glass refraction source
+      let screenTexture = null;
+      let screenTexW = 0, screenTexH = 0;
+      async function captureAndUpdateScreenTexture() {
+        try {
+          const data = await invoke('capture_screen');
+          if (!data || data.length < 8) return;
+          // First 8 bytes: width(4) + height(4) as u32 LE
+          const w = new Uint32Array(data.buffer, 0, 1)[0];
+          const h = new Uint32Array(data.buffer, 4, 1)[0];
+          const pixels = data.slice(8);
+
+          const glCanvas = document.getElementById('glCanvas');
+          const gl = glCanvas.getContext('webgl2') || glCanvas.getContext('webgl');
+          if (!gl) return;
+
+          if (!screenTexture || screenTexW !== w || screenTexH !== h) {
+            if (screenTexture) gl.deleteTexture(screenTexture);
+            screenTexture = gl.createTexture();
+            screenTexW = w;
+            screenTexH = h;
+          }
+          gl.bindTexture(gl.TEXTURE_2D, screenTexture);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(pixels));
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+          // Pass to app.js render loop
+          if (window.__liquidGlassState) {
+            window.__liquidGlassState.setScreenTexture(screenTexture, w / h);
+          }
+        } catch (e) {
+          console.error('[ScreenCap]', e);
+        }
+      }
+      captureAndUpdateScreenTexture();
+      setInterval(captureAndUpdateScreenTexture, 500);
+
       // Emit interacting state for click-through
       const canvas = document.getElementById('glCanvas');
       canvas.addEventListener('mouseenter', () => {
