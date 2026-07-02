@@ -9,17 +9,25 @@
     /* === DOM overlay for island content === */
     #island-overlay {
       position: fixed;
-      top: 70px;
+      top: 50px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 6px;
       pointer-events: none;
       z-index: 10;
       font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
       -webkit-font-smoothing: antialiased;
       transition: top 0.05s linear;
+    }
+
+    /* Shadow layer - 两个独立阴影 */
+    .island-shadow {
+      position: fixed;
+      background: transparent;
+      pointer-events: none;
+      z-index: 5;
     }
 
     /* Left panel (time + sysinfo) */
@@ -136,6 +144,10 @@
 <body>
   <canvas id="glCanvas"></canvas>
 
+  <!-- Shadow layer -->
+  <div class="island-shadow" id="shadow-left"></div>
+  <div class="island-shadow" id="shadow-right"></div>
+
   <!-- DOM overlay for island content -->
   <div id="island-overlay">
     <div id="overlay-left">
@@ -177,6 +189,7 @@
     (function() {
       const isTauri = window.__TAURI__ !== undefined;
       if (isTauri) {
+        document.documentElement.classList.add('tauri-mode');
         document.body.classList.add('tauri-mode');
         initTauriMode();
       }
@@ -186,17 +199,34 @@
       const { invoke } = window.__TAURI__.core;
       const { listen } = window.__TAURI__.event;
 
+      // Listen for settings changes from the settings window
+      await listen('settings-changed', (event) => {
+        const cfg = event.payload;
+        if (window.__liquidGlassConfig && cfg) {
+          Object.keys(cfg).forEach(k => {
+            if (typeof cfg[k] === 'object' && cfg[k] !== null && !Array.isArray(cfg[k]) && typeof window.__liquidGlassConfig[k] === 'object') {
+              Object.assign(window.__liquidGlassConfig[k], cfg[k]);
+            } else {
+              window.__liquidGlassConfig[k] = cfg[k];
+            }
+          });
+        }
+      });
+
       // Listen for expand/collapse from Rust
       await listen('set-expand', (event) => {
         const expanded = event.payload;
         const left = document.getElementById('overlay-left');
         const right = document.getElementById('overlay-right');
+        const shadow = document.getElementById('island-shadow');
         if (expanded) {
           left.classList.add('expanded');
           right.classList.add('expanded');
+          shadow.classList.add('expanded');
         } else {
           left.classList.remove('expanded');
           right.classList.remove('expanded');
+          shadow.classList.remove('expanded');
         }
         // Sync hover state with app.js
         if (window.__liquidGlassState) {
@@ -232,42 +262,95 @@
       // Screen capture for glass refraction source
       let screenTexture = null;
       let screenTexW = 0, screenTexH = 0;
-      async function captureAndUpdateScreenTexture() {
-        try {
-          const data = await invoke('capture_screen');
-          if (!data || data.length < 8) return;
-          // First 8 bytes: width(4) + height(4) as u32 LE
-          const w = new Uint32Array(data.buffer, 0, 1)[0];
-          const h = new Uint32Array(data.buffer, 4, 1)[0];
-          const pixels = data.slice(8);
+      let capturing = false;
+      const CAPTURE_INTERVAL = 7; // 144fps ≈ 6.94ms
+      let _capCount = 0;
 
+      // JPEG 解码：base64 → Image → texImage2D
+      function decodeJpegB64(b64) {
+        return new Promise((resolve, reject) => {
+          const raw = atob(b64);
+          const bytes = new Uint8Array(raw.length);
+          for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+          const blob = new Blob([bytes], { type: 'image/jpeg' });
+          const url = URL.createObjectURL(blob);
+          const img = new Image();
+          img.onload = () => {
+            URL.revokeObjectURL(url);
+            resolve(img);
+          };
+          img.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error('JPEG decode failed'));
+          };
+          img.src = url;
+        });
+      }
+
+      async function captureAndUpdateScreenTexture() {
+        if (capturing) return;
+        capturing = true;
+        try {
           const glCanvas = document.getElementById('glCanvas');
           const gl = glCanvas.getContext('webgl2') || glCanvas.getContext('webgl');
-          if (!gl) return;
+          if (!gl) { capturing = false; return; }
 
-          if (!screenTexture || screenTexW !== w || screenTexH !== h) {
-            if (screenTexture) gl.deleteTexture(screenTexture);
-            screenTexture = gl.createTexture();
-            screenTexW = w;
-            screenTexH = h;
-          }
-          gl.bindTexture(gl.TEXTURE_2D, screenTexture);
-          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(pixels));
-          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+          const { getCurrentWindow } = window.__TAURI__.window;
+          const pos = await getCurrentWindow().outerPosition();
+          const dpr = window.devicePixelRatio || 1;
+          const canvasW = glCanvas.width;
+          const canvasH = glCanvas.height;
+          const capW = canvasW;
+          const capH = canvasH;
+          const capScreenX = Math.round(pos.x);
+          const capScreenY = Math.round(pos.y);
 
-          // Pass to app.js render loop
-          if (window.__liquidGlassState) {
-            window.__liquidGlassState.setScreenTexture(screenTexture, w / h);
+          const t1 = performance.now();
+          const b64 = await invoke('capture_screen', { x: capScreenX, y: capScreenY, width: capW, height: capH });
+          const t2 = performance.now();
+          if (!b64) { capturing = false; return; }
+
+          // 解码 JPEG
+          const img = await decodeJpegB64(b64);
+          const t3 = performance.now();
+
+          // 上传纹理
+          requestAnimationFrame(() => {
+            if (!screenTexture || screenTexW !== capW || screenTexH !== capH) {
+              if (screenTexture) gl.deleteTexture(screenTexture);
+              screenTexture = gl.createTexture();
+              screenTexW = capW;
+              screenTexH = capH;
+              gl.bindTexture(gl.TEXTURE_2D, screenTexture);
+              gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+              gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+              gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+              gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            }
+            gl.bindTexture(gl.TEXTURE_2D, screenTexture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+            if (window.__liquidGlassState) {
+              window.__liquidGlassState.setScreenTexture(screenTexture, capW / capH);
+            }
+          });
+
+          _capCount++;
+          if (_capCount % 10 === 0) {
+            console.log('[Perf] IPC:', (t2-t1).toFixed(1)+'ms',
+              'Decode:', (t3-t2).toFixed(1)+'ms',
+              'Total:', (t3-t1).toFixed(1)+'ms',
+              'b64:', (b64.length/1024).toFixed(0)+'KB');
           }
         } catch (e) {
           console.error('[ScreenCap]', e);
+        } finally {
+          capturing = false;
+          // Schedule next capture AFTER this one completes — no pile-up
+          setTimeout(captureAndUpdateScreenTexture, CAPTURE_INTERVAL);
         }
       }
+      // Kick off the first capture
       captureAndUpdateScreenTexture();
-      setInterval(captureAndUpdateScreenTexture, 500);
 
       // Emit interacting state for click-through
       const canvas = document.getElementById('glCanvas');

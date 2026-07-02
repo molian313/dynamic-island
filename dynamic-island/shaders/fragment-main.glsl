@@ -781,7 +781,8 @@ void main() {
 
   // Tauri mode: make outside-island pixels transparent
   if (u_tauriMode == 1 && merged > 0.01) {
-    float edge = smoothstep(0.0, 0.003, merged);
+    float px = 2.0 / u_resolution.y;
+    float edge = smoothstep(0.0, px, merged);
     outColor.a *= 1.0 - edge;
   }
 

@@ -7,8 +7,8 @@ html, body {
 }
 
 /* Tauri mode: fully transparent background */
-.tauri-mode, .tauri-mode html, .tauri-mode body {
-  background: transparent;
+.tauri-mode {
+  background: transparent !important;
 }
 .tauri-mode canvas#glCanvas {
   background: transparent;

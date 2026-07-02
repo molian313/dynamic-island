@@ -8,7 +8,7 @@ use windows::Win32::UI::WindowsAndMessaging::*;
 
 pub struct DebugClickState(pub Arc<AtomicBool>);
 
-const CAPSULE_TOP_PAD: f64 = 70.0;
+const CAPSULE_TOP_PAD: f64 = 50.0;
 const CAPSULE_COLLAPSED_H: f64 = 50.0;
 const CAPSULE_EXPANDED_H: f64 = 74.0;
 const ZONE_HALF: f64 = 150.0;

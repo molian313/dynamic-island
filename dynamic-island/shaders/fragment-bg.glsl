@@ -62,26 +62,20 @@ float superellipseCornerSDF(vec2 p, float r, float n) {
 }
 
 float roundedRectSDF(vec2 p, vec2 center, float width, float height, float cornerRadius, float n) {
-  // 移动到中心坐标系
   p -= center;
 
   float cr = cornerRadius * u_dpr;
-  // Clamp corner radius to half the smallest dimension
   cr = min(cr, min(width, height) * 0.5 * u_dpr);
 
-  // 计算到矩形边缘的距离
   vec2 d = abs(p) - vec2(width * u_dpr, height * u_dpr) * 0.5;
 
-  // 对于边缘区域和角落，我们需要不同的处理
   float dist;
 
   if (d.x > -cr && d.y > -cr) {
-    // 角落区域
     vec2 cornerCenter = sign(p) * (vec2(width * u_dpr, height * u_dpr) * 0.5 - vec2(cr));
     vec2 cornerP = p - cornerCenter;
     dist = superellipseCornerSDF(cornerP, cr, n);
   } else {
-    // 内部和边缘区域
     dist = min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
   }
 
@@ -105,7 +99,6 @@ float mainSDF(vec2 p1, vec2 p2, vec2 p) {
     u_shape1Radius / u_resolution.y,
     u_shapeRoundness
   ) : 1.0;
-  // float d2 = sdSuperellipse(p2, 200.0 / u_resolution.y, 4.0).x;
   float d2 = roundedRectSDF(
     p2n,
     vec2(0.0),
@@ -126,15 +119,11 @@ float sdgMin(float a, float b) {
     : b;
 }
 
-// 输入：原始 uv、canvas 宽高比、纹理宽高比
-// 输出：变换后的 uv，可直接用于 texture 采样
 vec2 getCoverUV(vec2 uv, float canvasAspect, float textureAspect) {
   if (canvasAspect > textureAspect) {
-    // canvas 更宽，纹理竖向拉伸
     float scale = textureAspect / canvasAspect;
     uv.y = uv.y * scale + 0.5 - 0.5 * scale;
   } else {
-    // canvas 更高，纹理横向拉伸
     float scale = canvasAspect / textureAspect;
     uv.x = uv.x * scale + 0.5 - 0.5 * scale;
   }
@@ -143,11 +132,9 @@ vec2 getCoverUV(vec2 uv, float canvasAspect, float textureAspect) {
 
 void main() {
   vec2 u_resolution1x = u_resolution.xy / u_dpr;
-  // float chessboardBg = chessboard(gl_FragCoord.xy, 14.0);
   vec3 bgColor = vec3(1.0);
 
   if (u_bgType <= 0) {
-    // chessboard
     bgColor = vec3(1.0 - chessboard(gl_FragCoord.xy / u_dpr, 20.0, 2) / 4.0);
   } else if (u_bgType <= 1) {
     if (v_uv.x < 0.5 && v_uv.y > 0.5) {
@@ -161,16 +148,12 @@ void main() {
     bgColor = vec3(halfColor(gl_FragCoord.xy / u_resolution) * 0.6 + 0.3);
   } else if (u_bgType <= 11) {
     if (u_bgTextureReady != 1) {
-      // chessboard
       bgColor = vec3(1.0 - chessboard(gl_FragCoord.xy / u_dpr, 20.0, 2) / 4.0);
     } else {
       vec2 uv = getCoverUV(v_uv, u_resolution.x / u_resolution.y, u_bgTextureRatio);
-
-      // 不需要判断越界，CLAMP_TO_EDGE 会自动处理
       bgColor = texture(u_bgTexture, uv).rgb;
     }
   } else if (u_bgType == 100) {
-    // Procedural flowing gradient: deep purple to teal to pink
     float t = u_time * 0.15;
     vec2 uv = v_uv;
     vec3 c1 = vec3(0.15, 0.05, 0.35);
@@ -187,20 +170,13 @@ void main() {
     bgColor += vec3(f4 * 0.08);
   }
 
-  // float chessboardBg = 1.0 - chessboard(gl_FragCoord.xy / u_dpr, 10.0) / 4.0;
-  // float halfColorBg = halfColor(gl_FragCoord.xy / u_resolution);
-
-  // draw shadow
-  // center of shape 1 (custom position)
   vec2 p1 =
     (vec2(0, 0) - u_shape1Center +
       vec2(u_shadowPosition.x * u_dpr, u_shadowPosition.y * u_dpr)) /
     u_resolution.y;
-  // center of shape 2
   vec2 p2 =
     (vec2(0, 0) - u_mouseSpring + vec2(u_shadowPosition.x * u_dpr, u_shadowPosition.y * u_dpr)) /
     u_resolution.y;
-  // merged shape
   float merged = mainSDF(p1, p2, gl_FragCoord.xy);
 
   float shadow = exp(-1.0 / u_shadowExpand * abs(merged) * u_resolution1x.y) * 0.6 * u_shadowFactor;

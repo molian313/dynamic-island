@@ -83,7 +83,6 @@
   let pointerX = 0, pointerY = 0;      // in canvas pixel coords (GL origin)
   let springX = 0, springY = 0;
   let springVX = 0, springVY = 0;
-  let isDragging = false;
   let isHovering = false;
   let isCompactMode = false;  // toggled by double-click on right island
   let isTauriMode = !!window.__TAURI__;
@@ -305,6 +304,7 @@
   function syncOverlay() {
     var ovLeft = document.getElementById('overlay-left');
     var ovRight = document.getElementById('overlay-right');
+    var shadow = document.getElementById('island-shadow');
     if (!ovLeft) return; // not in DOM (standalone mode)
     var expanded = isHovering;
     var compact = isCompactMode;
@@ -319,7 +319,41 @@
       ovRight.classList.toggle('compact', compact);
       _prevOverlayCompact = compact;
     }
+    // 动态更新阴影位置和大小，与 WebGL 岛完全匹配
+    var shadowL = document.getElementById('shadow-left');
+    var shadowR = document.getElementById('shadow-right');
+    if (shadowL && shadowR) {
+      var gap = C.islandGap;
+      var totalW = animWidth + gap + anim1Width;
+      var centerX = canvasW / 2;
+      var topY = canvasH - springY / dpr - animHeight / 2 + (C.cssShadowTop || 0);
+      var radiusL = Math.min(C.shapeRadius, animHeight / 2);
+      var radiusR = Math.min(C.shape1Radius, anim1Height / 2);
+      var shadowBlur = C.cssShadowBlur || 5;
+      var shadowOpacity = C.cssShadowOpacity || 0.25;
+      var shadowOffsetY = C.cssShadowOffsetY || 0;
+      var shadowCSS = '0 ' + shadowOffsetY + 'px ' + shadowBlur + 'px rgba(0,0,0,' + shadowOpacity + '), '
+                    + 'inset 0 ' + shadowOffsetY + 'px ' + shadowBlur + 'px rgba(0,0,0,' + shadowOpacity + ')';
+      // 左岛阴影
+      var leftX = centerX - totalW / 2;
+      shadowL.style.left = leftX + 'px';
+      shadowL.style.top = topY + 'px';
+      shadowL.style.width = animWidth + 'px';
+      shadowL.style.height = animHeight + 'px';
+      shadowL.style.borderRadius = radiusL + 'px';
+      shadowL.style.boxShadow = shadowCSS;
+      // 右岛阴影
+      var rightX = leftX + animWidth + gap;
+      shadowR.style.left = rightX + 'px';
+      shadowR.style.top = topY + 'px';
+      shadowR.style.width = anim1Width + 'px';
+      shadowR.style.height = anim1Height + 'px';
+      shadowR.style.borderRadius = radiusR + 'px';
+      shadowR.style.boxShadow = shadowCSS;
+    }
   }
+
+  var _frameCount = 0, _fpsTime = 0;
 
   function render(timestamp) {
     requestAnimationFrame(render);
@@ -329,6 +363,14 @@
     const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
     lastTime = timestamp;
     if (dt <= 0) return;
+
+    // FPS counter
+    _frameCount++;
+    if (timestamp - _fpsTime >= 2000) {
+      console.log('[Render] FPS:', Math.round(_frameCount * 1000 / (timestamp - _fpsTime)));
+      _frameCount = 0;
+      _fpsTime = timestamp;
+    }
 
     // Update spring physics
     updateSpring(dt);
@@ -367,15 +409,16 @@
     var shapeSizeSpringX = animWidth;
     var shapeSizeSpringY = animHeight;
 
-    // Lock shapes at center-top, 70px from top, side by side
-    if (!isDragging) {
-      var totalW = animWidth + C.islandGap + anim1Width;
-      var centerX = (canvasW / 2) * dpr;
-      var centerY = (canvasH - 70) * dpr;
-      // Both shapes track one pointer
-      pointerX = centerX;
-      pointerY = centerY;
-    }
+    // Lock shapes at center-top, 50px from top, side by side
+    var totalW = animWidth + C.islandGap + anim1Width;
+    var centerX = (canvasW / 2) * dpr;
+    var baseCenterY = (canvasH - 50) * dpr;
+    // 用目标高度（非动画高度）计算中心，避免弹簧追逐移动目标产生振荡
+    var targetH = isHovering ? (isCompactMode ? C.compactExpandedHeight : C.expandedHeight) : (isCompactMode ? C.compactHeight : C.shapeHeight);
+    var centerY = baseCenterY - ((targetH - C.shapeHeight) / 2) * dpr;
+    // Both shapes track one pointer
+    pointerX = centerX;
+    pointerY = centerY;
 
     // 主岛 center = group center - (副岛宽 + 间距) / 2
     mainIslandCenterX = springX - ((anim1Width + C.islandGap) / 2) * dpr;
@@ -461,38 +504,38 @@
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
     // ---------------------------------------------------------------
-    // Pass 2: Vertical blur
+    // Pass 2+3: Blur (skipped when blurRadius <= 1)
     // ---------------------------------------------------------------
-    gl.bindFramebuffer(gl.FRAMEBUFFER, vblurFBO.fbo);
-    gl.useProgram(vblurProgram);
+    var useBlurredTex = bgFBO.tex;
+    if (C.blurRadius >= 2) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, vblurFBO.fbo);
+      gl.useProgram(vblurProgram);
 
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, bgFBO.tex);
-    gl.uniform1i(vblurU.u_prevPassTexture, 0);
-    gl.uniform2f(vblurU.u_resolution, uResolution[0], uResolution[1]);
-    gl.uniform1i(vblurU.u_blurRadius, C.blurRadius);
-    for (var i = 0; i <= C.blurRadius && i < blurWeights.length; i++) {
-      gl.uniform1f(vblurU['u_blurWeights[' + i + ']'], blurWeights[i]);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, bgFBO.tex);
+      gl.uniform1i(vblurU.u_prevPassTexture, 0);
+      gl.uniform2f(vblurU.u_resolution, uResolution[0], uResolution[1]);
+      gl.uniform1i(vblurU.u_blurRadius, C.blurRadius);
+      for (var i = 0; i <= C.blurRadius && i < blurWeights.length; i++) {
+        gl.uniform1f(vblurU['u_blurWeights[' + i + ']'], blurWeights[i]);
+      }
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, hblurFBO.fbo);
+      gl.useProgram(hblurProgram);
+
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, vblurFBO.tex);
+      gl.uniform1i(hblurU.u_prevPassTexture, 0);
+      gl.uniform2f(hblurU.u_resolution, uResolution[0], uResolution[1]);
+      gl.uniform1i(hblurU.u_blurRadius, C.blurRadius);
+      for (var i = 0; i <= C.blurRadius && i < blurWeights.length; i++) {
+        gl.uniform1f(hblurU['u_blurWeights[' + i + ']'], blurWeights[i]);
+      }
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+      useBlurredTex = hblurFBO.tex;
     }
-
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-    // ---------------------------------------------------------------
-    // Pass 3: Horizontal blur
-    // ---------------------------------------------------------------
-    gl.bindFramebuffer(gl.FRAMEBUFFER, hblurFBO.fbo);
-    gl.useProgram(hblurProgram);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, vblurFBO.tex);
-    gl.uniform1i(hblurU.u_prevPassTexture, 0);
-    gl.uniform2f(hblurU.u_resolution, uResolution[0], uResolution[1]);
-    gl.uniform1i(hblurU.u_blurRadius, C.blurRadius);
-    for (var i = 0; i <= C.blurRadius && i < blurWeights.length; i++) {
-      gl.uniform1f(hblurU['u_blurWeights[' + i + ']'], blurWeights[i]);
-    }
-
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
     // ---------------------------------------------------------------
     // Pass 4: Main composite
@@ -500,9 +543,9 @@
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.useProgram(mainProgram);
 
-    // Bind textures
+    // Bind textures — use bgFBO directly when blur is skipped
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, hblurFBO.tex);
+    gl.bindTexture(gl.TEXTURE_2D, useBlurredTex);
     gl.uniform1i(mainU.u_blurredBg, 0);
 
     gl.activeTexture(gl.TEXTURE1);
@@ -643,6 +686,7 @@
         'u_refFresnelHardness', 'u_refFresnelFactor', 'u_glareRange',
         'u_glareHardness', 'u_glareConvergence', 'u_glareOppositeFactor',
         'u_glareFactor', 'u_glareAngle', 'u_blurEdge', 'u_showShape1', 'STEP',
+        'u_tauriMode',
       ]);
 
       // Create quad VAO (use bgProgram to find a_position location)
@@ -701,29 +745,11 @@
     canvas.addEventListener('pointermove', function (e) {
       var mx = e.clientX;
       var my = e.clientY;
-      if (isDragging) {
-        pointerX = mx * dpr;
-        pointerY = (canvasH - my) * dpr;
-      }
       // Update hover state
       isHovering = isInsideIsland(mx, my);
     });
 
-    // Drag to move both shapes together
-    canvas.addEventListener('pointerdown', function (e) {
-      isDragging = true;
-      pointerX = e.clientX * dpr;
-      pointerY = (canvasH - e.clientY) * dpr;
-      canvas.setPointerCapture(e.pointerId);
-    });
-    canvas.addEventListener('pointerup', function (e) {
-      isDragging = false;
-    });
-    canvas.addEventListener('pointercancel', function () {
-      isDragging = false;
-    });
     canvas.addEventListener('pointerleave', function () {
-      isDragging = false;
       isHovering = false;
     });
 

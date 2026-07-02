@@ -41,7 +41,11 @@
     showShape1: true,
     islandGap: 6,
     springSizeFactor: 10,
-    bgType: 0
+    bgType: 0,
+    cssShadowBlur: 5,
+    cssShadowOpacity: 0.25,
+    cssShadowOffsetY: 0,
+    cssShadowTop: 5
   };
 
   // ---------------------------------------------------------------------------
@@ -90,6 +94,13 @@
 
   var ANIM_CONTROLS = [
     { key: 'springSizeFactor', label: '动画形变', type: 'range', min: 0, max: 50, step: 0.01 }
+  ];
+
+  var SHADOW_CONTROLS = [
+    { key: 'cssShadowBlur',    label: '阴影模糊半径', type: 'range', min: 0, max: 50, step: 1 },
+    { key: 'cssShadowOpacity', label: '阴影不透明度', type: 'range', min: 0, max: 1,  step: 0.01 },
+    { key: 'cssShadowOffsetY', label: '阴影垂直偏移', type: 'range', min: -50, max: 50, step: 1 },
+    { key: 'cssShadowTop',     label: '阴影整体偏移', type: 'range', min: -50, max: 50, step: 1 },
   ];
 
   // ---------------------------------------------------------------------------
@@ -667,6 +678,9 @@
     // Folder: Animation Settings
     panel.appendChild(createFolder('\u52A8\u753B\u8BBE\u7F6E (Animation Settings)', ANIM_CONTROLS, false));
 
+    // Folder: Shadow Settings
+    panel.appendChild(createFolder('\u9634\u5F71\u8BBE\u7F6E (Shadow Settings)', SHADOW_CONTROLS, false));
+
     // Upload hint (shown when bgType === 11)
     var uploadHintContainer = el('div');
     uploadHintContainer.style.cssText = 'padding:0 14px 8px;';
@@ -952,6 +966,13 @@
     }
     setTimeout(waitForConfig, 50);
   }
+
+  // Expose for settings window to sync controls after receiving config
+  window.__syncControlsFromConfig = function() {
+    if (window.__liquidGlassConfig) {
+      applyConfigToUI(window.__liquidGlassConfig);
+    }
+  };
 
   // Start
   if (document.readyState === 'loading') {
