@@ -1,186 +1,96 @@
-use std::sync::mpsc;
-use windows::Win32::Foundation::HMODULE;
-use windows::Win32::Graphics::Direct3D::*;
-use windows::Win32::Graphics::Direct3D11::*;
-use windows::Win32::Graphics::Dxgi::Common::*;
-use windows::Win32::Graphics::Dxgi::*;
-use windows::Win32::System::Com::{CoInitializeEx, COINIT_APARTMENTTHREADED};
-use windows_core::Interface;
-
-struct DxgiCapture {
-    duplication: IDXGIOutputDuplication,
-    staging: ID3D11Texture2D,
-    device: ID3D11Device,
-    desk_w: u32,
-    desk_h: u32,
-}
-
-fn init_dxgi() -> windows::core::Result<DxgiCapture> {
-    unsafe {
-        let mut device: Option<ID3D11Device> = None;
-        D3D11CreateDevice(
-            None::<&IDXGIAdapter>,
-            D3D_DRIVER_TYPE_HARDWARE,
-            HMODULE(std::ptr::null_mut()),
-            D3D11_CREATE_DEVICE_BGRA_SUPPORT,
-            Some(&[D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0]),
-            D3D11_SDK_VERSION,
-            Some(&mut device),
-            None,
-            None,
-        )?;
-        let device = device.ok_or(windows::core::Error::from_hresult(windows::core::HRESULT(0x80004005u32 as i32)))?;
-
-        let factory: IDXGIFactory1 = CreateDXGIFactory1()?;
-        let adapter: IDXGIAdapter = factory.EnumAdapters1(0)?.into();
-
-        let output_idx = 0u32;
-        let output: IDXGIOutput = loop {
-            match adapter.EnumOutputs(output_idx) {
-                Ok(o) => break o,
-                Err(_) => return Err(windows::core::Error::from_hresult(windows::core::HRESULT(0x80004005u32 as i32))),
-            }
-        };
-
-        let output1: IDXGIOutput1 = output.cast()?;
-        let desc = output.GetDesc()?;
-        let desk_w = (desc.DesktopCoordinates.right - desc.DesktopCoordinates.left) as u32;
-        let desk_h = (desc.DesktopCoordinates.bottom - desc.DesktopCoordinates.top) as u32;
-        eprintln!("[DXGI] Desktop size: {desk_w}x{desk_h}");
-
-        let duplication = output1.DuplicateOutput(&device)?;
-
-        let tex_desc = D3D11_TEXTURE2D_DESC {
-            Width: desk_w,
-            Height: desk_h,
-            MipLevels: 1,
-            ArraySize: 1,
-            Format: DXGI_FORMAT_B8G8R8A8_UNORM,
-            SampleDesc: DXGI_SAMPLE_DESC { Count: 1, Quality: 0 },
-            Usage: D3D11_USAGE_STAGING,
-            BindFlags: 0,
-            CPUAccessFlags: D3D11_CPU_ACCESS_READ.0 as u32,
-            MiscFlags: 0,
-            ..Default::default()
-        };
-        let mut staging: Option<ID3D11Texture2D> = None;
-        device.CreateTexture2D(&tex_desc, None, Some(&mut staging))?;
-        let staging = staging.ok_or(windows::core::Error::from_hresult(windows::core::HRESULT(0x80004005u32 as i32)))?;
-
-        Ok(DxgiCapture { duplication, staging, device, desk_w, desk_h })
-    }
-}
-
-/// Capture the full desktop and crop to the requested region.
-/// Returns BGRA pixels (top-down, cropped to x,y,w,h).
-fn capture_frame(cap: &mut DxgiCapture, rx: i32, ry: i32, rw: u32, rh: u32) -> windows::core::Result<Vec<u8>> {
-    unsafe {
-        let mut frame: Option<IDXGIResource> = None;
-        let mut info = DXGI_OUTDUPL_FRAME_INFO::default();
-        cap.duplication.AcquireNextFrame(100, &mut info, &mut frame)?;
-        let frame = frame.ok_or(windows::core::Error::from_hresult(windows::core::HRESULT(0x80004005u32 as i32)))?;
-
-        let tex: ID3D11Texture2D = frame.cast()?;
-        let ctx = cap.device.GetImmediateContext()?;
-        ctx.CopyResource(&cap.staging, &tex);
-        let _ = cap.duplication.ReleaseFrame();
-
-        let mut mapped = D3D11_MAPPED_SUBRESOURCE::default();
-        ctx.Map(&cap.staging, 0, D3D11_MAP_READ, 0, Some(&mut mapped))?;
-        let ptr = mapped.pData as *const u8;
-        let bytes_per_row = mapped.RowPitch as usize;
-
-        // Clamp region to desktop bounds
-        let x = rx.max(0) as u32;
-        let y = ry.max(0) as u32;
-        let w = rw.min(cap.desk_w.saturating_sub(x));
-        let h = rh.min(cap.desk_h.saturating_sub(y));
-
-        // Extract cropped region (BGRA, top-down)
-        let mut pixels = Vec::with_capacity((w * h * 4) as usize);
-        for row in 0..h as usize {
-            let src_offset = (y as usize + row) * bytes_per_row + x as usize * 4;
-            let row_bytes = w as usize * 4;
-            let slice = std::slice::from_raw_parts(ptr.add(src_offset), row_bytes);
-            pixels.extend_from_slice(slice);
-        }
-        ctx.Unmap(&cap.staging, 0);
-
-        eprintln!("[DXGI] Captured {}x{} region (full {}x{}, bytes={})", w, h, cap.desk_w, cap.desk_h, pixels.len());
-        Ok(pixels)
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Static channel — JS commands → capture thread
-// ---------------------------------------------------------------------------
-
-struct CaptureReq {
-    x: i32, y: i32, w: u32, h: u32,
-    reply: mpsc::Sender<CaptureRes>,
-}
-
-struct CaptureRes {
-    _w: u32, _h: u32, pixels: Vec<u8>,
-}
-
-static CAPTURE_TX: std::sync::OnceLock<mpsc::Sender<CaptureReq>> =
-    std::sync::OnceLock::new();
-
-fn get_capture_tx() -> &'static mpsc::Sender<CaptureReq> {
-    CAPTURE_TX.get_or_init(|| {
-        let (tx, rx) = mpsc::channel::<CaptureReq>();
-        std::thread::Builder::new()
-            .name("dxgi-capture".into())
-            .spawn(move || {
-                unsafe { let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED); }
-
-                let mut cap = None::<DxgiCapture>;
-
-                for req in rx {
-                    if cap.is_none() {
-                        match init_dxgi() {
-                            Ok(c) => cap = Some(c),
-                            Err(e) => {
-                                eprintln!("[DXGI] init failed: {e}");
-                                let _ = req.reply.send(CaptureRes { _w: 0, _h: 0, pixels: vec![] });
-                                std::thread::sleep(std::time::Duration::from_secs(3));
-                                continue;
-                            }
-                        }
-                    }
-                    let c = cap.as_mut().unwrap();
-                    match capture_frame(c, req.x, req.y, req.w, req.h) {
-                        Ok(pixels) => {
-                            let _ = req.reply.send(CaptureRes { _w: req.w, _h: req.h, pixels });
-                        }
-                        Err(e) => {
-                            eprintln!("[DXGI] frame error: {e}, reinitializing");
-                            cap = None;
-                            let _ = req.reply.send(CaptureRes { _w: 0, _h: 0, pixels: vec![] });
-                        }
-                    }
-                }
-            })
-            .expect("spawn dxgi-capture thread");
-        tx
-    })
-}
-
-// ---------------------------------------------------------------------------
-// Public capture function (called from tauri command)
-// ---------------------------------------------------------------------------
+use base64::Engine;
+use windows::Win32::Foundation::RECT;
+use windows::Win32::Graphics::Gdi::*;
+use windows::Win32::UI::WindowsAndMessaging::{GetDesktopWindow, GetWindowRect};
 
 #[tauri::command]
-pub async fn capture_screen(
-    x: i32, y: i32, width: u32, height: u32,
-) -> std::result::Result<Vec<u8>, String> {
-    let (reply_tx, reply_rx) = mpsc::channel();
-    get_capture_tx()
-        .send(CaptureReq { x, y, w: width, h: height, reply: reply_tx })
-        .map_err(|e| format!("capture channel send: {e}"))?;
-    let res = reply_rx
-        .recv()
-        .map_err(|e| format!("capture channel recv: {e}"))?;
-    Ok(res.pixels)
+pub fn capture_screen(x: i32, y: i32, width: u32, height: u32) -> Result<String, String> {
+    unsafe {
+        let desktop = GetDesktopWindow();
+        let hdc_desktop = GetWindowDC(Some(desktop));
+
+        let mut win_rect = RECT::default();
+        let _ = GetWindowRect(desktop, &mut win_rect);
+        let screen_w = (win_rect.right - win_rect.left) as i32;
+        let screen_h = (win_rect.bottom - win_rect.top) as i32;
+
+        let capture_h = (height as i32).min(screen_h);
+        let capture_w = (width as i32).min(screen_w);
+        let src_x = x.max(0).min(screen_w - capture_w);
+        let src_y = y.max(0).min(screen_h - capture_h);
+
+        let hdc_mem = CreateCompatibleDC(Some(hdc_desktop));
+        if hdc_mem.0.is_null() {
+            ReleaseDC(Some(desktop), hdc_desktop);
+            return Err("CreateCompatibleDC failed".into());
+        }
+
+        let hbitmap = CreateCompatibleBitmap(hdc_desktop, capture_w, capture_h);
+        if hbitmap.0.is_null() {
+            DeleteDC(hdc_mem);
+            ReleaseDC(Some(desktop), hdc_desktop);
+            return Err("CreateCompatibleBitmap failed".into());
+        }
+
+        let _old_bitmap = SelectObject(hdc_mem, hbitmap.into());
+
+        let _ = BitBlt(
+            hdc_mem, 0, 0, capture_w, capture_h,
+            Some(hdc_desktop), src_x, src_y, SRCCOPY,
+        );
+
+        let mut bmi = BITMAPINFO {
+            bmiHeader: BITMAPINFOHEADER {
+                biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
+                biWidth: capture_w,
+                biHeight: -capture_h,
+                biPlanes: 1,
+                biBitCount: 32,
+                biCompression: 0,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let mut pixels = vec![0u8; (capture_w * capture_h * 4) as usize];
+        let _ = GetDIBits(
+            hdc_mem, hbitmap, 0, capture_h as u32,
+            Some(pixels.as_mut_ptr() as *mut _),
+            &mut bmi, DIB_RGB_COLORS,
+        );
+
+        let _ = SelectObject(hdc_mem, _old_bitmap);
+        let _ = DeleteObject(hbitmap.into());
+        let _ = DeleteDC(hdc_mem);
+        let _ = ReleaseDC(Some(desktop), hdc_desktop);
+
+        // BGRA → RGB (丢弃 Alpha，JPEG 不需要)
+        // 同时翻转行（top-down → bottom-up for WebGL）
+        let w = capture_w as usize;
+        let h = capture_h as usize;
+        let mut rgb = vec![0u8; w * h * 3];
+        for row in 0..h {
+            let src_row = h - 1 - row;
+            for col in 0..w {
+                let src_idx = (src_row * w + col) * 4;
+                let dst_idx = (row * w + col) * 3;
+                rgb[dst_idx] = pixels[src_idx + 2];     // R (from BGRA)
+                rgb[dst_idx + 1] = pixels[src_idx + 1]; // G
+                rgb[dst_idx + 2] = pixels[src_idx];     // B (from BGRA)
+            }
+        }
+
+        // 用 turbojpeg 编码（比 image crate 快 5-10 倍）
+        let image = turbojpeg::Image {
+            pixels: rgb.as_slice(),
+            width: w,
+            height: h,
+            pitch: w * 3,
+            format: turbojpeg::PixelFormat::RGB,
+        };
+        let jpeg_buf = turbojpeg::compress(image, 75, turbojpeg::Subsamp::Sub2x2)
+            .map_err(|e| format!("turbojpeg compress error: {}", e))?;
+
+        Ok(base64::engine::general_purpose::STANDARD.encode(&jpeg_buf))
+    }
 }
