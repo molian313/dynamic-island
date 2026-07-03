@@ -46,6 +46,7 @@ fn init_dxgi() -> windows::core::Result<DxgiCapture> {
         let desc = output.GetDesc()?;
         let desk_w = (desc.DesktopCoordinates.right - desc.DesktopCoordinates.left) as u32;
         let desk_h = (desc.DesktopCoordinates.bottom - desc.DesktopCoordinates.top) as u32;
+        eprintln!("[DXGI] Desktop size: {desk_w}x{desk_h}");
 
         let duplication = output1.DuplicateOutput(&device)?;
 
@@ -70,7 +71,9 @@ fn init_dxgi() -> windows::core::Result<DxgiCapture> {
     }
 }
 
-fn capture_frame(cap: &mut DxgiCapture) -> windows::core::Result<(u32, u32, Vec<u8>)> {
+/// Capture the full desktop and crop to the requested region.
+/// Returns BGRA pixels (top-down, cropped to x,y,w,h).
+fn capture_frame(cap: &mut DxgiCapture, rx: i32, ry: i32, rw: u32, rh: u32) -> windows::core::Result<Vec<u8>> {
     unsafe {
         let mut frame: Option<IDXGIResource> = None;
         let mut info = DXGI_OUTDUPL_FRAME_INFO::default();
@@ -86,17 +89,25 @@ fn capture_frame(cap: &mut DxgiCapture) -> windows::core::Result<(u32, u32, Vec<
         ctx.Map(&cap.staging, 0, D3D11_MAP_READ, 0, Some(&mut mapped))?;
         let ptr = mapped.pData as *const u8;
         let bytes_per_row = mapped.RowPitch as usize;
-        let total = bytes_per_row * cap.desk_h as usize;
-        let raw = std::slice::from_raw_parts(ptr, total);
-        let mut pixels = Vec::with_capacity((cap.desk_w * cap.desk_h * 4) as usize);
-        for row in 0..cap.desk_h as usize {
-            let start = row * bytes_per_row;
-            let end = start + cap.desk_w as usize * 4;
-            pixels.extend_from_slice(&raw[start..end]);
+
+        // Clamp region to desktop bounds
+        let x = rx.max(0) as u32;
+        let y = ry.max(0) as u32;
+        let w = rw.min(cap.desk_w.saturating_sub(x));
+        let h = rh.min(cap.desk_h.saturating_sub(y));
+
+        // Extract cropped region (BGRA, top-down)
+        let mut pixels = Vec::with_capacity((w * h * 4) as usize);
+        for row in 0..h as usize {
+            let src_offset = (y as usize + row) * bytes_per_row + x as usize * 4;
+            let row_bytes = w as usize * 4;
+            let slice = std::slice::from_raw_parts(ptr.add(src_offset), row_bytes);
+            pixels.extend_from_slice(slice);
         }
         ctx.Unmap(&cap.staging, 0);
 
-        Ok((cap.desk_w, cap.desk_h, pixels))
+        eprintln!("[DXGI] Captured {}x{} region (full {}x{}, bytes={})", w, h, cap.desk_w, cap.desk_h, pixels.len());
+        Ok(pixels)
     }
 }
 
@@ -105,7 +116,7 @@ fn capture_frame(cap: &mut DxgiCapture) -> windows::core::Result<(u32, u32, Vec<
 // ---------------------------------------------------------------------------
 
 struct CaptureReq {
-    _x: i32, _y: i32, _w: u32, _h: u32,
+    x: i32, y: i32, w: u32, h: u32,
     reply: mpsc::Sender<CaptureRes>,
 }
 
@@ -139,9 +150,9 @@ fn get_capture_tx() -> &'static mpsc::Sender<CaptureReq> {
                         }
                     }
                     let c = cap.as_mut().unwrap();
-                    match capture_frame(c) {
-                        Ok((w, h, px)) => {
-                            let _ = req.reply.send(CaptureRes { _w: w, _h: h, pixels: px });
+                    match capture_frame(c, req.x, req.y, req.w, req.h) {
+                        Ok(pixels) => {
+                            let _ = req.reply.send(CaptureRes { _w: req.w, _h: req.h, pixels });
                         }
                         Err(e) => {
                             eprintln!("[DXGI] frame error: {e}, reinitializing");
@@ -161,12 +172,12 @@ fn get_capture_tx() -> &'static mpsc::Sender<CaptureReq> {
 // ---------------------------------------------------------------------------
 
 #[tauri::command]
-pub fn capture_screen(
-    _x: i32, _y: i32, _w: u32, _h: u32,
+pub async fn capture_screen(
+    x: i32, y: i32, width: u32, height: u32,
 ) -> std::result::Result<Vec<u8>, String> {
     let (reply_tx, reply_rx) = mpsc::channel();
     get_capture_tx()
-        .send(CaptureReq { _x, _y, _w, _h, reply: reply_tx })
+        .send(CaptureReq { x, y, w: width, h: height, reply: reply_tx })
         .map_err(|e| format!("capture channel send: {e}"))?;
     let res = reply_rx
         .recv()
