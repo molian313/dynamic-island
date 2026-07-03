@@ -76,7 +76,7 @@ pub fn run() {
 
     let printer_manager = Arc::new(printer::PrinterManager::new());
     let pm_clone = printer_manager.clone();
-    let debug_click_state = Arc::new(AtomicBool::new(true));
+    let debug_click_state = Arc::new(AtomicBool::new(false));
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())

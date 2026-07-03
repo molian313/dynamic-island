@@ -1,319 +1,17 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>设置 - Liquid Glass Island</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #1a1a1a;
-      color: #fff;
-      min-height: 100vh;
-    }
-
-    .container {
-      display: flex;
-      height: 100vh;
-    }
-
-    .sidebar {
-      width: 200px;
-      background: #111;
-      border-right: 1px solid #333;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .sidebar-header {
-      padding: 24px 20px;
-      border-bottom: 1px solid #333;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .sidebar-header img {
-      width: 36px;
-      height: 36px;
-      border-radius: 8px;
-    }
-
-    .sidebar-header-text {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .sidebar-header h1 {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
-    .sidebar-header p {
-      font-size: 12px;
-      color: #888;
-    }
-
-    .nav-list {
-      padding: 12px 8px;
-    }
-
-    .nav-item {
-      padding: 10px 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 14px;
-      color: #ccc;
-      transition: background 0.15s, color 0.15s;
-      margin-bottom: 2px;
-    }
-
-    .nav-item:hover {
-      background: #2a2a2a;
-      color: #fff;
-    }
-
-    .nav-item.active {
-      background: #333;
-      color: #fff;
-    }
-
-    .content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .content-header {
-      padding: 24px 32px 16px;
-      border-bottom: 1px solid #333;
-    }
-
-    .content-header h2 {
-      font-size: 20px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
-    .content-header p {
-      font-size: 13px;
-      color: #888;
-    }
-
-    .content-body {
-      flex: 1;
-      overflow-y: auto;
-      padding: 24px 32px;
-    }
-
-    .page { display: none; }
-    .page.active { display: block; }
-
-    .setting-group {
-      margin-bottom: 24px;
-    }
-
-    .setting-group-title {
-      font-size: 12px;
-      font-weight: 600;
-      color: #888;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 12px;
-    }
-
-    .setting-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px;
-      background: #222;
-      border-radius: 10px;
-      border: 1px solid #333;
-      margin-bottom: 8px;
-    }
-
-    .setting-label h3 {
-      font-size: 14px;
-      font-weight: 500;
-      margin-bottom: 4px;
-    }
-
-    .setting-label p {
-      font-size: 12px;
-      color: #888;
-    }
-
-    .switch {
-      position: relative;
-      width: 44px;
-      height: 24px;
-      display: inline-block;
-    }
-
-    .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      inset: 0;
-      background: #444;
-      border-radius: 24px;
-      transition: background 0.2s;
-    }
-
-    .slider::before {
-      content: "";
-      position: absolute;
-      height: 18px;
-      width: 18px;
-      left: 3px;
-      bottom: 3px;
-      background: white;
-      border-radius: 50%;
-      transition: transform 0.2s;
-    }
-
-    .switch input:checked + .slider {
-      background: #22c55e;
-    }
-
-    .switch input:checked + .slider::before {
-      transform: translateX(20px);
-    }
-
-    .input {
-      background: #333;
-      border: 1px solid #444;
-      border-radius: 8px;
-      padding: 10px 12px;
-      color: #fff;
-      font-size: 13px;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-
-    .input:focus {
-      border-color: #22c55e;
-    }
-
-    .btn {
-      padding: 8px 16px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 500;
-      transition: background 0.15s;
-    }
-
-    .btn-primary {
-      background: #22c55e;
-      color: #fff;
-    }
-
-    .btn-primary:hover {
-      background: #16a34a;
-    }
-
-    .btn-danger {
-      background: #ef4444;
-      color: #fff;
-    }
-
-    .btn-danger:hover {
-      background: #dc2626;
-    }
-
-    .btn-glass {
-      background: #3b82f6;
-      color: #fff;
-    }
-
-    .btn-glass:hover {
-      background: #2563eb;
-    }
-
-    .printer-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 16px;
-      background: #2a2a2a;
-      border-radius: 8px;
-      border: 1px solid #333;
-    }
-
-    .printer-item-actions {
-      display: flex;
-      gap: 6px;
-    }
-
-    .btn-edit {
-      background: #3b82f6;
-      color: #fff;
-    }
-
-    .btn-edit:hover {
-      background: #2563eb;
-    }
-
-    .printer-item-info {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .printer-item-name {
-      font-size: 14px;
-      font-weight: 500;
-    }
-
-    .printer-item-ip {
-      font-size: 12px;
-      color: #888;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    .status {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 13px;
-      color: #22c55e;
-      background: #2a2a2a;
-      padding: 6px 16px;
-      border-radius: 6px;
-      opacity: 0;
-      transition: opacity 0.3s;
-      pointer-events: none;
-    }
-
-    .status.show {
-      opacity: 1;
-    }
-  </style>
+  <link rel="stylesheet" href="controls.css">
+  <link rel="stylesheet" href="settings.css">
 </head>
 <body>
   <div class="container">
     <aside class="sidebar">
       <div class="sidebar-header">
-        <img src="icons/128x128.png" alt="Liquid Glass Island" />
+        <img src="icons/128x128.png" alt="Liquid Glass Island">
         <div class="sidebar-header-text">
           <h1>Liquid Glass Island</h1>
           <p>设置</p>
@@ -323,6 +21,7 @@
         <div class="nav-item active" data-page="general">常规设置</div>
         <div class="nav-item" data-page="printer">打印机</div>
         <div class="nav-item" data-page="blacklist">屏蔽列表</div>
+        <div class="nav-item" data-page="glass">玻璃参数</div>
       </nav>
     </aside>
 
@@ -333,7 +32,6 @@
       </header>
 
       <div class="content-body">
-        <!-- General Settings -->
         <div class="page active" id="page-general">
           <div class="setting-group">
             <div class="setting-group-title">系统</div>
@@ -344,7 +42,7 @@
               </div>
               <div class="setting-control">
                 <label class="switch">
-                  <input type="checkbox" id="auto-start-toggle" />
+                  <input type="checkbox" id="auto-start-toggle">
                   <span class="slider"></span>
                 </label>
               </div>
@@ -356,7 +54,7 @@
               </div>
               <div class="setting-control">
                 <label class="switch">
-                  <input type="checkbox" id="debug-toggle" />
+                  <input type="checkbox" id="debug-toggle">
                   <span class="slider"></span>
                 </label>
               </div>
@@ -366,26 +64,22 @@
             <div class="setting-group-title">玻璃效果</div>
             <div class="setting-item">
               <div class="setting-label">
-                <h3>玻璃参数面板</h3>
-                <p>打开独立的玻璃效果参数调整面板（折射、模糊、Fresnel、阴影等）。</p>
-              </div>
-              <div class="setting-control">
-                <button id="open-glass-panel" class="btn btn-glass">打开面板</button>
+                <h3>玻璃参数</h3>
+                <p>点击左侧「玻璃参数」标签页调整折射、模糊、Fresnel、阴影等效果。</p>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Printer Settings -->
         <div class="page" id="page-printer">
           <div class="setting-group">
             <div class="setting-group-title">打印机列表</div>
             <div id="printer-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
             <div class="form-grid">
-              <input id="pcfg-name" class="input" type="text" placeholder="名称（如：2号）" />
-              <input id="pcfg-ip" class="input" type="text" placeholder="IP 地址" />
-              <input id="pcfg-access" class="input" type="text" placeholder="访问码" />
-              <input id="pcfg-serial" class="input" type="text" placeholder="序列号" />
+              <input id="pcfg-name" class="input" type="text" placeholder="名称（如：2号）">
+              <input id="pcfg-ip" class="input" type="text" placeholder="IP 地址">
+              <input id="pcfg-access" class="input" type="text" placeholder="访问码">
+              <input id="pcfg-serial" class="input" type="text" placeholder="序列号">
             </div>
             <div style="display:flex;gap:8px;">
               <button id="pcfg-add" class="btn btn-primary">添加</button>
@@ -394,7 +88,6 @@
           </div>
         </div>
 
-        <!-- Blacklist Settings -->
         <div class="page" id="page-blacklist">
           <div class="setting-group">
             <div class="setting-group-title">屏蔽设置</div>
@@ -405,7 +98,7 @@
               </div>
               <div class="setting-control">
                 <label class="switch">
-                  <input type="checkbox" id="blacklist-enabled" />
+                  <input type="checkbox" id="blacklist-enabled">
                   <span class="slider"></span>
                 </label>
               </div>
@@ -415,11 +108,15 @@
             <div class="setting-group-title">黑名单进程</div>
             <div id="blacklist-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
             <div style="display:flex;gap:8px;">
-              <input id="blacklist-input" class="input" type="text" placeholder="进程名（如：chrome.exe）" style="flex:1;" />
+              <input id="blacklist-input" class="input" type="text" placeholder="进程名（如：chrome.exe）" style="flex:1;">
               <button id="blacklist-add" class="btn btn-primary">添加</button>
               <button id="blacklist-save" class="btn btn-primary">保存</button>
             </div>
           </div>
+        </div>
+
+        <div class="page" id="page-glass">
+          <div id="glass-container" style="min-height:100%;"></div>
         </div>
       </div>
 
@@ -427,188 +124,6 @@
     </div>
   </div>
 
-  <script>
-    (function() {
-      var invoke = window.__TAURI__.core.invoke;
-
-      // Page navigation
-      var navItems = document.querySelectorAll('.nav-item');
-      var pages = document.querySelectorAll('.page');
-      var pageTitle = document.getElementById('page-title');
-      var pageDesc = document.getElementById('page-desc');
-
-      var pageInfo = {
-        general: { title: '常规设置', desc: '配置系统选项。' },
-        printer: { title: '打印机', desc: '管理 Bambu Lab 打印机连接配置。' },
-        blacklist: { title: '屏蔽列表', desc: '添加需要屏蔽灵动岛的进程名称（如 chrome.exe）。' },
-      };
-
-      function navigateTo(pageId) {
-        navItems.forEach(function(n) { n.classList.remove('active'); });
-        document.querySelector('.nav-item[data-page="' + pageId + '"]').classList.add('active');
-        pages.forEach(function(p) { p.classList.remove('active'); });
-        document.getElementById('page-' + pageId).classList.add('active');
-        var info = pageInfo[pageId];
-        if (info) {
-          pageTitle.textContent = info.title;
-          pageDesc.textContent = info.desc;
-        }
-      }
-
-      navItems.forEach(function(item) {
-        item.addEventListener('click', function() { navigateTo(item.dataset.page); });
-      });
-
-      // Auto-start
-      var autoStartToggle = document.getElementById('auto-start-toggle');
-      invoke('get_auto_start').then(function(v) { autoStartToggle.checked = v; }).catch(function() {});
-      autoStartToggle.addEventListener('change', function() {
-        invoke('set_auto_start', { enabled: autoStartToggle.checked }).catch(function() {});
-      });
-
-      // Debug mode
-      var debugToggle = document.getElementById('debug-toggle');
-      invoke('get_debug_mode').then(function(v) { debugToggle.checked = v; }).catch(function() {});
-      debugToggle.addEventListener('change', function() {
-        invoke('set_debug_mode', { enabled: debugToggle.checked }).catch(function() {});
-      });
-
-      // Open glass panel button
-      document.getElementById('open-glass-panel').addEventListener('click', function() {
-        invoke('open_glass_panel');
-      });
-
-      // Printer configs
-      var printerList = document.getElementById('printer-list');
-      var pcfgName = document.getElementById('pcfg-name');
-      var pcfgIp = document.getElementById('pcfg-ip');
-      var pcfgAccess = document.getElementById('pcfg-access');
-      var pcfgSerial = document.getElementById('pcfg-serial');
-      var pcfgAdd = document.getElementById('pcfg-add');
-      var pcfgSave = document.getElementById('pcfg-save');
-      var printerConfigs = [];
-      var editingIndex = -1;
-
-      function renderPrinterList() {
-        printerList.innerHTML = '';
-        printerConfigs.forEach(function(cfg, i) {
-          var el = document.createElement('div');
-          el.className = 'printer-item';
-          el.innerHTML = '<div class="printer-item-info"><div class="printer-item-name">' + cfg.name + '</div><div class="printer-item-ip">' + cfg.ip_address + '</div></div><div class="printer-item-actions"><button class="btn btn-edit" data-index="' + i + '">编辑</button><button class="btn btn-danger" data-index="' + i + '">删除</button></div>';
-          el.querySelector('.btn-edit').addEventListener('click', function() {
-            editingIndex = i;
-            pcfgName.value = cfg.name;
-            pcfgIp.value = cfg.ip_address;
-            pcfgAccess.value = cfg.access_code;
-            pcfgSerial.value = cfg.serial;
-            pcfgAdd.textContent = '更新';
-            pcfgAdd.classList.remove('btn-primary');
-            pcfgAdd.classList.add('btn-edit');
-          });
-          el.querySelector('.btn-danger').addEventListener('click', function() {
-            if (editingIndex === i) cancelEdit();
-            else if (editingIndex > i) editingIndex--;
-            printerConfigs.splice(i, 1);
-            renderPrinterList();
-          });
-          printerList.appendChild(el);
-        });
-      }
-
-      function cancelEdit() {
-        editingIndex = -1;
-        pcfgAdd.textContent = '添加';
-        pcfgAdd.classList.remove('btn-edit');
-        pcfgAdd.classList.add('btn-primary');
-        pcfgName.value = '';
-        pcfgIp.value = '';
-        pcfgAccess.value = '';
-        pcfgSerial.value = '';
-      }
-
-      pcfgAdd.addEventListener('click', function() {
-        var name = pcfgName.value.trim();
-        var ip = pcfgIp.value.trim();
-        var access = pcfgAccess.value.trim();
-        var serial = pcfgSerial.value.trim();
-        if (!name || !ip || !access || !serial) return;
-        if (editingIndex >= 0) {
-          printerConfigs[editingIndex] = { name: name, ip_address: ip, access_code: access, serial: serial };
-          cancelEdit();
-        } else {
-          printerConfigs.push({ name: name, ip_address: ip, access_code: access, serial: serial });
-        }
-        renderPrinterList();
-        pcfgName.value = '';
-        pcfgIp.value = '';
-        pcfgAccess.value = '';
-        pcfgSerial.value = '';
-      });
-
-      pcfgSave.addEventListener('click', function() {
-        invoke('set_printer_configs', { configs: printerConfigs }).then(function() {
-          showStatus('打印机配置已保存');
-        }).catch(function() {});
-      });
-
-      invoke('get_printer_configs').then(function(v) {
-        printerConfigs = v;
-        renderPrinterList();
-      }).catch(function() {});
-
-      // Status toast
-      var statusEl = document.getElementById('status');
-      function showStatus(msg) {
-        statusEl.textContent = msg;
-        statusEl.classList.add('show');
-        setTimeout(function() { statusEl.classList.remove('show'); }, 2000);
-      }
-
-      // Blacklist
-      var blacklistEnabled = document.getElementById('blacklist-enabled');
-      var blacklistInput = document.getElementById('blacklist-input');
-      var blacklistAdd = document.getElementById('blacklist-add');
-      var blacklistSave = document.getElementById('blacklist-save');
-      var blacklistList = document.getElementById('blacklist-list');
-      var blacklistProcesses = [];
-
-      function renderBlacklist() {
-        blacklistList.innerHTML = '';
-        blacklistProcesses.forEach(function(name, i) {
-          var el = document.createElement('div');
-          el.className = 'printer-item';
-          el.innerHTML = '<div class="printer-item-info"><div class="printer-item-name">' + name + '</div></div><button class="btn btn-danger" data-index="' + i + '">删除</button>';
-          el.querySelector('button').addEventListener('click', function() {
-            blacklistProcesses.splice(i, 1);
-            renderBlacklist();
-          });
-          blacklistList.appendChild(el);
-        });
-      }
-
-      invoke('get_blacklist_enabled').then(function(v) { blacklistEnabled.checked = v; }).catch(function() {});
-      invoke('get_blacklist').then(function(v) { blacklistProcesses = v; renderBlacklist(); }).catch(function() {});
-
-      blacklistEnabled.addEventListener('change', function() {
-        invoke('set_blacklist_enabled', { enabled: blacklistEnabled.checked }).catch(function() {});
-      });
-
-      blacklistAdd.addEventListener('click', function() {
-        var name = blacklistInput.value.trim().toLowerCase();
-        if (!name) return;
-        if (blacklistProcesses.indexOf(name) === -1) {
-          blacklistProcesses.push(name);
-          renderBlacklist();
-        }
-        blacklistInput.value = '';
-      });
-
-      blacklistSave.addEventListener('click', function() {
-        invoke('save_blacklist', { processes: blacklistProcesses }).then(function() {
-          showStatus('黑名单已保存');
-        }).catch(function() {});
-      });
-    })();
-  </script>
+  <script src="src/settings-init.js"></script>
 </body>
 </html>

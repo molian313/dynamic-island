@@ -113,9 +113,7 @@ pub fn setup_click_through(app: &tauri::App, debug_click_state: Arc<AtomicBool>)
                     }
                     was_on_capsule = true;
                 } else if !on_capsule && was_on_capsule {
-                    if !interacting {
-                        set_click_through(hwnd, true);
-                    }
+                    set_click_through(hwnd, true);
                     was_on_capsule = false;
                 }
 

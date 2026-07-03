@@ -58,6 +58,11 @@
     springSizeFactor: 10,
     step: 9,
     bgType: 0, // 0 = chessboard (original default)
+    // CSS shadow settings (synced from controls.js)
+    cssShadowBlur: 5,
+    cssShadowOpacity: 0.25,
+    cssShadowOffsetY: 0,
+    cssShadowTop: 5,
   };
 
   // ---------------------------------------------------------------------------
@@ -114,6 +119,7 @@
   let lastSpringValueX = 0,
     lastSpringValueY = 0;
   let lastSpringTime = null;
+  let springInitialized = false;
 
   // Blur kernel (precomputed once)
   let blurWeights = [];
@@ -375,8 +381,7 @@
       var gap = C.islandGap;
       var totalW = animWidth + gap + anim1Width;
       var centerX = canvasW / 2;
-      var topY =
-        canvasH - springY / dpr - animHeight / 2 + (C.cssShadowTop || 0);
+      var topY = 11 + (C.cssShadowTop || 0);
       var radiusL = Math.min(C.shapeRadius, animHeight / 2);
       var radiusR = Math.min(C.shape1Radius, anim1Height / 2);
       var shadowBlur = C.cssShadowBlur || 5;
@@ -423,6 +428,11 @@
     requestAnimationFrame(render);
 
     handleResize();
+
+    // Clear default framebuffer to prevent showing stale/undefined content
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
 
     const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
     lastTime = timestamp;
@@ -496,6 +506,15 @@
     // Both shapes track one pointer
     pointerX = centerX;
     pointerY = centerY;
+
+    // First frame: snap spring to target position (skip fly-in animation)
+    if (!springInitialized) {
+      springInitialized = true;
+      springX = pointerX;
+      springY = pointerY;
+      spring1X = pointerX;
+      spring1Y = pointerY;
+    }
 
     // 主岛 center = group center - (副岛宽 + 间距) / 2
     mainIslandCenterX = springX - ((anim1Width + C.islandGap) / 2) * dpr;
@@ -1017,6 +1036,12 @@
   } catch (e) {
     /* ignore */
   }
+
+  // Write merged config back to main window's localStorage
+  // (settings window may have separate localStorage partition in Tauri v2)
+  try {
+    localStorage.setItem("liquid-glass-current-state", JSON.stringify(C));
+  } catch (e) { /* ignore */ }
 
   // Expose config for controls panel
   window.__liquidGlassConfig = C;
