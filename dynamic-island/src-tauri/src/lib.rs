@@ -36,6 +36,23 @@ fn forward_settings(app: tauri::AppHandle, settings: serde_json::Value) {
     }
 }
 
+#[tauri::command]
+fn open_glass_panel(app: tauri::AppHandle) {
+    if let Some(win) = app.get_webview_window("glass-settings") {
+        let _ = win.show();
+        let _ = win.set_focus();
+        return;
+    }
+    let _ = tauri::WebviewWindowBuilder::new(&app, "glass-settings", tauri::WebviewUrl::App("glass-settings.html".into()))
+        .title("玻璃参数 - Liquid Glass Island")
+        .inner_size(360.0, 600.0)
+        .resizable(false)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .center()
+        .build();
+}
+
 fn create_tray_icon() -> Vec<u8> {
     let (size, center, radius) = (32u32, 16.0, 12.0);
     let mut rgba = vec![0u8; (size * size * 4) as usize];
@@ -69,6 +86,7 @@ pub fn run() {
             get_system_stats,
             capture_screen,
             forward_settings,
+            open_glass_panel,
             get_shortcuts,
             add_shortcut,
             remove_shortcut,
