@@ -440,6 +440,11 @@
 
     // FPS counter
     _frameCount++;
+    // Show capsule after first frame renders
+    if (_frameCount === 1) {
+      var capsule = document.getElementById('island-capsule');
+      if (capsule) capsule.classList.add('ready');
+    }
     if (timestamp - _fpsTime >= 2000) {
       console.log(
         "[Render] FPS:",
@@ -569,6 +574,7 @@
     );
     gl.uniform1i(bgU.u_bgType, C.bgType);
     gl.uniform1i(bgU.u_showShape1, uShowShape1);
+    gl.uniform1i(bgU.u_tauriMode, isTauriMode ? 1 : 0);
 
     // Background texture (prefer screen capture in Tauri mode)
     var activeBgTex = null,
@@ -723,6 +729,10 @@
       console.error("EXT_color_buffer_float not supported");
       return;
     }
+
+    // Immediately clear to transparent so the window doesn't flash white on startup
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
 
     // Initial dimensions
     dpr = window.devicePixelRatio || 1;

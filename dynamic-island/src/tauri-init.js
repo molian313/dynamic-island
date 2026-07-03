@@ -57,7 +57,7 @@
     var screenTexture = null;
     var screenTexW = 0, screenTexH = 0;
     var capturing = false;
-    var CAPTURE_INTERVAL = 7;
+    var CAPTURE_INTERVAL = 16; // ~60fps
 
     function decodeJpegB64(b64) {
       return new Promise(function(resolve, reject) {
@@ -99,14 +99,17 @@
             screenTexture = gl.createTexture();
             screenTexW = capW;
             screenTexH = capH;
+            gl.activeTexture(gl.TEXTURE2);
             gl.bindTexture(gl.TEXTURE_2D, screenTexture);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
           }
+          gl.activeTexture(gl.TEXTURE2);
           gl.bindTexture(gl.TEXTURE_2D, screenTexture);
           gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+          gl.activeTexture(gl.TEXTURE0);
           if (window.__liquidGlassState) {
             window.__liquidGlassState.setScreenTexture(screenTexture, capW / capH);
           }
