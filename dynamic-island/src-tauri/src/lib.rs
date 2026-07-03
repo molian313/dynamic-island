@@ -15,7 +15,6 @@ use std::thread;
 use std::time::Duration;
 use tauri::Manager;
 use tauri::Emitter;
-use tauri::Listener;
 use tauri::menu::{MenuBuilder, MenuItemBuilder};
 use tauri::tray::TrayIconBuilder;
 use tauri::image::Image;
@@ -23,7 +22,7 @@ use windows::Win32::Foundation::HWND;
 use windows::Win32::UI::WindowsAndMessaging::{SetWindowDisplayAffinity, WINDOW_DISPLAY_AFFINITY, ShowWindow, SW_HIDE, SW_SHOWNOACTIVATE};
 
 use sysinfo::get_system_stats;
-use screencap::capture_screen;
+use screencap::capture_screen; // now returns Result<Vec<u8>, String>
 use shortcuts::{get_shortcuts, add_shortcut, remove_shortcut, open_shortcut};
 use settings::{open_settings, get_settings, save_settings, get_auto_start, set_auto_start, get_debug_mode, set_debug_mode, get_blacklist, get_blacklist_enabled, set_blacklist_enabled, save_blacklist};
 
@@ -139,7 +138,7 @@ pub fn run() {
             let settings_item = MenuItemBuilder::with_id("settings", "设置").build(app)?;
             let menu = MenuBuilder::new(app).item(&settings_item).separator().item(&quit_item).build()?;
 
-            let app_handle = app.handle().clone();
+            let _app_handle = app.handle().clone();
             let _tray = TrayIconBuilder::new()
                 .icon(Image::new_owned(create_tray_icon(), 32, 32))
                 .menu(&menu)

@@ -53,33 +53,41 @@
     updateSysInfo();
     setInterval(updateSysInfo, 1500);
 
-    // Screen capture for glass refraction source
+    // --- DXGI Desktop Duplication screen capture ---
     var screenTexture = null;
     var screenTexW = 0, screenTexH = 0;
     var capturing = false;
-    var CAPTURE_INTERVAL = 7;
 
-    function decodeJpegB64(b64) {
-      return new Promise(function(resolve, reject) {
-        var raw = atob(b64);
-        var bytes = new Uint8Array(raw.length);
-        for (var i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-        var blob = new Blob([bytes], { type: 'image/jpeg' });
-        var url = URL.createObjectURL(blob);
-        var img = new Image();
-        img.onload = function() { URL.revokeObjectURL(url); resolve(img); };
-        img.onerror = function() { URL.revokeObjectURL(url); reject(new Error('JPEG decode failed')); };
-        img.src = url;
-      });
+    // Try to use BGRA extension to avoid pixel swizzling on JS side
+    var glCanvas = document.getElementById('glCanvas');
+    var gl = glCanvas.getContext('webgl2') || glCanvas.getContext('webgl');
+    var bgraExt = gl ? gl.getExtension('EXT_texture_format_bgra8888') : null;
+
+    // Flip + BGRA→RGBA in-place (used when BGRA extension unavailable)
+    function flipBgraToRgba(pixels, w, h) {
+      var rowBytes = w * 4;
+      var tmp = new Uint8Array(rowBytes);
+      for (var top = 0, bot = h - 1; top < bot; top++, bot--) {
+        var a = top * rowBytes, b = bot * rowBytes;
+        tmp.set(pixels.subarray(a, a + rowBytes));
+        pixels.set(pixels.subarray(b, b + rowBytes), a);
+        pixels.set(tmp, b);
+      }
+      // swap B↔R in-place
+      for (var i = 0, len = w * h * 4; i < len; i += 4) {
+        var t = pixels[i]; pixels[i] = pixels[i + 2]; pixels[i + 2] = t;
+      }
     }
 
-    async function captureAndUpdateScreenTexture() {
+    async function captureScreen() {
       if (capturing) return;
       capturing = true;
       try {
-        var glCanvas = document.getElementById('glCanvas');
-        var gl = glCanvas.getContext('webgl2') || glCanvas.getContext('webgl');
-        if (!gl) { capturing = false; return; }
+        if (!gl) {
+          gl = glCanvas.getContext('webgl2') || glCanvas.getContext('webgl');
+          if (!gl) return;
+          if (!bgraExt) bgraExt = gl.getExtension('EXT_texture_format_bgra8888');
+        }
 
         var getCurrentWindow = window.__TAURI__.window.getCurrentWindow;
         var pos = await getCurrentWindow().outerPosition();
@@ -88,37 +96,79 @@
         var capScreenX = Math.round(pos.x);
         var capScreenY = Math.round(pos.y);
 
-        var b64 = await invoke('capture_screen', { x: capScreenX, y: capScreenY, width: capW, height: capH });
-        if (!b64) { capturing = false; return; }
+        // capture_screen now returns raw BGRA pixels via DXGI Desktop Duplication
+        var raw = await invoke('capture_screen', { x: capScreenX, y: capScreenY, width: capW, height: capH });
+        if (!raw || raw.length === 0) return;
 
-        var img = await decodeJpegB64(b64);
+        // Ensure we have a Uint8Array
+        var pixels = (raw instanceof Uint8Array) ? raw : new Uint8Array(raw);
 
-        requestAnimationFrame(function() {
-          if (!screenTexture || screenTexW !== capW || screenTexH !== capH) {
-            if (screenTexture) gl.deleteTexture(screenTexture);
-            screenTexture = gl.createTexture();
-            screenTexW = capW;
-            screenTexH = capH;
-            gl.bindTexture(gl.TEXTURE_2D, screenTexture);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        // Get actual dimensions from the returned data
+        var fullW = Math.floor(pixels.length / 4 / capH) || capW;
+        var texW = capW, texH = capH;
+
+        // Extract the island's region from the full desktop capture
+        var regionPixels;
+        if (fullW === capW) {
+          regionPixels = pixels;
+        } else {
+          regionPixels = new Uint8Array(capW * capH * 4);
+          var bytesPerRow = fullW * 4;
+          for (var row = 0; row < capH; row++) {
+            var srcOff = (row * fullW + capScreenX) * 4;
+            var dstOff = row * capW * 4;
+            regionPixels.set(pixels.subarray(srcOff, srcOff + capW * 4), dstOff);
           }
+        }
+
+        // Prepare for WebGL upload: flip vertically + convert BGRA→RGBA if needed
+        var uploadPixels;
+        if (bgraExt) {
+          // BGRA extension available — just flip rows (top-down → bottom-up)
+          uploadPixels = new Uint8Array(regionPixels.length);
+          var rowBytes = capW * 4;
+          for (var row = 0; row < capH; row++) {
+            var src = row * rowBytes;
+            var dst = (capH - 1 - row) * rowBytes;
+            uploadPixels.set(regionPixels.subarray(src, src + rowBytes), dst);
+          }
+        } else {
+          // No BGRA extension — flip + swap channels
+          uploadPixels = new Uint8Array(regionPixels);
+          flipBgraToRgba(uploadPixels, capW, capH);
+        }
+
+        // Upload to WebGL texture
+        if (!screenTexture || screenTexW !== texW || screenTexH !== texH) {
+          if (screenTexture) gl.deleteTexture(screenTexture);
+          screenTexture = gl.createTexture();
+          screenTexW = texW;
+          screenTexH = texH;
           gl.bindTexture(gl.TEXTURE_2D, screenTexture);
-          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-          if (window.__liquidGlassState) {
-            window.__liquidGlassState.setScreenTexture(screenTexture, capW / capH);
-          }
-        });
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        }
+        gl.bindTexture(gl.TEXTURE_2D, screenTexture);
+        if (bgraExt) {
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, texW, texH, 0, 0x80E1, gl.UNSIGNED_BYTE, uploadPixels);
+        } else {
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, texW, texH, 0, gl.RGBA, gl.UNSIGNED_BYTE, uploadPixels);
+        }
+        if (window.__liquidGlassState) {
+          window.__liquidGlassState.setScreenTexture(screenTexture, texW / texH);
+        }
       } catch (e) {
         console.error('[ScreenCap]', e);
       } finally {
         capturing = false;
-        setTimeout(captureAndUpdateScreenTexture, CAPTURE_INTERVAL);
+        // DXGI AcquireNextFrame blocks until a new frame is available,
+        // so we just schedule the next capture immediately.
+        setTimeout(captureScreen, 0);
       }
     }
-    captureAndUpdateScreenTexture();
+    captureScreen();
 
     // Emit interacting state for click-through
     var canvas = document.getElementById('glCanvas');
