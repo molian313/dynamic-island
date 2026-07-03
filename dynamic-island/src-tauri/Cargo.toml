@@ -19,6 +19,13 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 base64 = "0.22"
 turbojpeg = { version = "1", features = ["image"] }
+uuid = { version = "1", features = ["v4"] }
+dirs = "5"
+png = "0.17"
+rumqttc = "0.24"
+tokio = { version = "1", features = ["full"] }
+rustls = "0.22"
+winreg = "0.55"
 windows = { version = "0.61", features = [
     "Win32_Foundation",
     "Win32_UI_WindowsAndMessaging",
@@ -26,4 +33,6 @@ windows = { version = "0.61", features = [
     "Win32_NetworkManagement_IpHelper",
     "Win32_Graphics_Gdi",
     "Win32_System_Threading",
+    "Win32_System_Registry",
+    "Win32_UI_Shell",
 ] }

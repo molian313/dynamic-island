@@ -1,20 +1,31 @@
 mod screencap;
 mod sysinfo;
 mod types;
+mod icon;
+mod shortcuts;
+mod settings;
 mod window;
+mod screenshot;
+pub mod printer;
 
-use std::sync::atomic::AtomicBool;
+use std::io::Write;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::thread;
+use std::time::Duration;
 use tauri::Manager;
 use tauri::Emitter;
 use tauri::Listener;
 use tauri::menu::{MenuBuilder, MenuItemBuilder};
 use tauri::tray::TrayIconBuilder;
 use tauri::image::Image;
+use windows::Win32::Foundation::HWND;
+use windows::Win32::UI::WindowsAndMessaging::{SetWindowDisplayAffinity, WINDOW_DISPLAY_AFFINITY, ShowWindow, SW_HIDE, SW_SHOWNOACTIVATE};
 
 use sysinfo::get_system_stats;
 use screencap::capture_screen;
-use windows::Win32::UI::WindowsAndMessaging::{SetWindowDisplayAffinity, WINDOW_DISPLAY_AFFINITY};
+use shortcuts::{get_shortcuts, add_shortcut, remove_shortcut, open_shortcut};
+use settings::{open_settings, get_settings, save_settings, get_auto_start, set_auto_start, get_debug_mode, set_debug_mode, get_blacklist, get_blacklist_enabled, set_blacklist_enabled, save_blacklist};
 
 const WDA_EXCLUDEFROMCAPTURE: u32 = 0x00000011;
 
@@ -41,53 +52,53 @@ fn create_tray_icon() -> Vec<u8> {
     rgba
 }
 
-fn open_settings_window(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    // If settings window already exists, just focus it
-    if let Some(win) = app.get_webview_window("settings") {
-        win.show()?;
-        win.set_focus()?;
-        return Ok(());
-    }
-
-    let main_window = app.get_webview_window("main").unwrap();
-
-    let settings = tauri::WebviewWindowBuilder::new(
-        app,
-        "settings",
-        tauri::WebviewUrl::App("settings.html".into()),
-    )
-    .title("设置 - Liquid Glass Island")
-    .inner_size(360.0, 600.0)
-    .resizable(false)
-    .always_on_top(true)
-    .skip_taskbar(true)
-    .build()?;
-
-    // Send current config to settings window after it loads
-    let settings_clone = settings.clone();
-    settings.listen("tauri://ready", move |_| {
-        let _ = settings_clone.emit_to("settings", "settings-init", serde_json::Value::Null);
-    });
-
-    Ok(())
-}
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let debug_click_state = Arc::new(AtomicBool::new(true)); // debug mode on by default for dev
+    let _ = std::io::stdout().write_all(b"\x1b[?1000l\x1b[?1003l\x1b[?1006l");
+    let _ = std::io::stdout().flush();
+
+    let printer_manager = Arc::new(printer::PrinterManager::new());
+    let pm_clone = printer_manager.clone();
+    let debug_click_state = Arc::new(AtomicBool::new(true));
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
+        .manage(printer_manager)
         .manage(window::DebugClickState(debug_click_state.clone()))
         .invoke_handler(tauri::generate_handler![
             get_system_stats,
             capture_screen,
             forward_settings,
+            get_shortcuts,
+            add_shortcut,
+            remove_shortcut,
+            open_shortcut,
+            open_settings,
+            get_settings,
+            save_settings,
+            get_auto_start,
+            set_auto_start,
+            get_debug_mode,
+            set_debug_mode,
+            get_blacklist,
+            get_blacklist_enabled,
+            set_blacklist_enabled,
+            save_blacklist,
+            settings::get_theme,
+            settings::save_theme,
+            window::show_context_menu,
+            screenshot::get_area_brightness,
+            printer::get_printer_configs,
+            printer::get_printer_status,
+            printer::get_priority_printer_status,
+            printer::get_secondary_printer_status,
+            printer::set_printer_configs,
         ])
         .setup(move |app| {
             let window = app.get_webview_window("main").unwrap();
             let _ = window.set_background_color(Some(tauri::webview::Color(0, 0, 0, 0)));
 
-            // Exclude window from screen captures (prevents feedback loop ghosting)
+            // Exclude window from screen captures
             if let Ok(hwnd) = window.hwnd() {
                 unsafe {
                     let _ = SetWindowDisplayAffinity(hwnd, WINDOW_DISPLAY_AFFINITY(WDA_EXCLUDEFROMCAPTURE));
@@ -97,40 +108,106 @@ pub fn run() {
             // Center horizontally at top
             if let Ok(Some(monitor)) = window.primary_monitor() {
                 let screen = monitor.size();
-                let win = window.outer_size().unwrap_or(tauri::PhysicalSize::new(1920, 150));
+                let win = window.outer_size().unwrap_or(tauri::PhysicalSize::new(500, 150));
                 let x = (screen.width.saturating_sub(win.width)) / 2;
                 let _ = window.set_position(tauri::PhysicalPosition::new(x, 0));
             }
 
-            // Setup click-through for transparent areas
+            // Setup click-through
             let _ = window::setup_click_through(app, debug_click_state.clone());
 
-            // Setup tray icon with menu
-            let settings_item = MenuItemBuilder::with_id("settings", "设置").build(app)?;
+            // Setup tray icon
             let quit_item = MenuItemBuilder::with_id("quit", "退出").build(app)?;
-            let menu = MenuBuilder::new(app)
-                .item(&settings_item)
-                .separator()
-                .item(&quit_item)
-                .build()?;
+            let settings_item = MenuItemBuilder::with_id("settings", "设置").build(app)?;
+            let menu = MenuBuilder::new(app).item(&settings_item).separator().item(&quit_item).build()?;
 
             let app_handle = app.handle().clone();
             let _tray = TrayIconBuilder::new()
                 .icon(Image::new_owned(create_tray_icon(), 32, 32))
                 .menu(&menu)
                 .tooltip("Liquid Glass Island")
-                .on_menu_event(move |_app, event| {
+                .on_menu_event(move |app, event| {
                     match event.id().as_ref() {
+                        "quit" => app.exit(0),
                         "settings" => {
-                            let _ = open_settings_window(&app_handle);
-                        }
-                        "quit" => {
-                            std::process::exit(0);
+                            let _ = settings::open_settings(app.clone());
                         }
                         _ => {}
                     }
                 })
                 .build(app)?;
+
+            // Start printer monitoring
+            let app_handle_clone = app.handle().clone();
+            pm_clone.start_monitoring(app_handle_clone);
+
+            // Start blacklist monitoring
+            {
+                let hwnd = window.hwnd().unwrap();
+                let hwnd_val = hwnd.0 as usize;
+                let settings_data = settings::load_settings_from_file();
+                let blacklist_processes = Arc::new(std::sync::Mutex::new(
+                    settings_data.blacklist_processes.iter().map(|s| s.trim().to_lowercase()).filter(|s| !s.is_empty()).collect::<Vec<String>>()
+                ));
+                let blacklist_enabled = Arc::new(AtomicBool::new(settings_data.blacklist_enabled));
+
+                // Settings re-read thread
+                {
+                    let blacklist = blacklist_processes.clone();
+                    let bl_enabled = blacklist_enabled.clone();
+                    thread::spawn(move || {
+                        loop {
+                            thread::sleep(Duration::from_secs(3));
+                            let s = settings::load_settings_from_file();
+                            bl_enabled.store(s.blacklist_enabled, Ordering::Relaxed);
+                            *blacklist.lock().unwrap() = s.blacklist_processes;
+                        }
+                    });
+                }
+
+                // Foreground process monitor thread
+                {
+                    let blacklist = blacklist_processes.clone();
+                    let bl_enabled = blacklist_enabled.clone();
+                    thread::spawn(move || {
+                        let hwnd = HWND(hwnd_val as *mut _);
+                        let mut hidden = false;
+                        loop {
+                            thread::sleep(Duration::from_millis(200));
+                            if hidden || !bl_enabled.load(Ordering::Relaxed) {
+                                let s = settings::load_settings_from_file();
+                                bl_enabled.store(s.blacklist_enabled, Ordering::Relaxed);
+                                *blacklist.lock().unwrap() = s.blacklist_processes;
+                            }
+                            if !bl_enabled.load(Ordering::Relaxed) {
+                                if hidden {
+                                    unsafe { let _ = ShowWindow(hwnd, SW_SHOWNOACTIVATE); }
+                                    hidden = false;
+                                }
+                                continue;
+                            }
+                            let list = blacklist.lock().unwrap().clone();
+                            if list.is_empty() {
+                                if hidden {
+                                    unsafe { let _ = ShowWindow(hwnd, SW_SHOWNOACTIVATE); }
+                                    hidden = false;
+                                }
+                                continue;
+                            }
+                            let fg_match = window::get_foreground_process_name()
+                                .map(|n| list.iter().any(|b| *b == n))
+                                .unwrap_or(false);
+                            if fg_match && !hidden {
+                                unsafe { let _ = ShowWindow(hwnd, SW_HIDE); }
+                                hidden = true;
+                            } else if !fg_match && hidden {
+                                unsafe { let _ = ShowWindow(hwnd, SW_SHOWNOACTIVATE); }
+                                hidden = false;
+                            }
+                        }
+                    });
+                }
+            }
 
             Ok(())
         })

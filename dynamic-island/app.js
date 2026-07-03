@@ -3,7 +3,7 @@
 // ============================================================================
 
 (function () {
-  'use strict';
+  "use strict";
 
   // ---------------------------------------------------------------------------
   // Controls defaults — copied exactly from Controls.tsx
@@ -13,19 +13,19 @@
     refFactor: 1.4,
     refDispersion: 7,
     refFresnelRange: 30,
-    refFresnelHardness: 20,      // → /100 when passed to shader
-    refFresnelFactor: 20,        // → /100
+    refFresnelHardness: 20, // → /100 when passed to shader
+    refFresnelFactor: 20, // → /100
     glareRange: 30,
-    glareHardness: 20,           // → /100
-    glareFactor: 90,             // → /100
-    glareConvergence: 50,        // → /100
-    glareOppositeFactor: 80,     // → /100
+    glareHardness: 20, // → /100
+    glareFactor: 90, // → /100
+    glareConvergence: 50, // → /100
+    glareOppositeFactor: 80, // → /100
     glareAngle: -45,
-    blurRadius: 1,               // original default is 1, NOT 40
+    blurRadius: 1, // original default is 1, NOT 40
     blurEdge: true,
-    tint: { r: 255, g: 255, b: 255, a: 0 },  // 0-255 range
+    tint: { r: 255, g: 255, b: 255, a: 0 }, // 0-255 range
     shadowExpand: 25,
-    shadowFactor: 15,           // → /100 when passed to shader
+    shadowFactor: 15, // → /100 when passed to shader
     shadowPosition: { x: 0, y: -10 },
     // Shape 1 (主岛 / left capsule)
     shapeWidth: 140,
@@ -37,7 +37,7 @@
     shape1Radius: 25,
     shapeRoundness: 5,
     mergeRate: 0.05,
-    showShape1: true,            // two shapes
+    showShape1: true, // two shapes
     // Island gap (CSS pixels, for initial positioning)
     islandGap: 6,
     // Expanded sizes (on hover)
@@ -45,7 +45,7 @@
     expandedHeight: 74,
     expandedShape1Width: 140,
     expandedShape1Height: 74,
-    expandSpeed: 8,              // lerp speed
+    expandSpeed: 8, // lerp speed
     // Compact mode sizes (after double-click right island)
     compactWidth: 86,
     compactHeight: 50,
@@ -57,7 +57,7 @@
     compactExpandedShape1Height: 74,
     springSizeFactor: 10,
     step: 9,
-    bgType: 0,                   // 0 = chessboard (original default)
+    bgType: 0, // 0 = chessboard (original default)
   };
 
   // ---------------------------------------------------------------------------
@@ -65,7 +65,8 @@
   // ---------------------------------------------------------------------------
   let gl, canvas;
   let dpr = 1;
-  let canvasW = 0, canvasH = 0;
+  let canvasW = 0,
+    canvasH = 0;
 
   // Programs
   let bgProgram, vblurProgram, hblurProgram, mainProgram;
@@ -77,26 +78,41 @@
   let bgFBO, vblurFBO, hblurFBO;
 
   // Uniform locations
-  let bgU = {}, vblurU = {}, hblurU = {}, mainU = {};
+  let bgU = {},
+    vblurU = {},
+    hblurU = {},
+    mainU = {};
 
   // Mouse / spring
-  let pointerX = 0, pointerY = 0;      // in canvas pixel coords (GL origin)
-  let springX = 0, springY = 0;
-  let springVX = 0, springVY = 0;
+  let pointerX = 0,
+    pointerY = 0; // in canvas pixel coords (GL origin)
+  let springX = 0,
+    springY = 0;
+  let springVX = 0,
+    springVY = 0;
   let isHovering = false;
-  let isCompactMode = false;  // toggled by double-click on right island
+  let isCompactMode = false; // toggled by double-click on right island
   let isTauriMode = !!window.__TAURI__;
   // Current animated sizes (lerp towards target)
-  let animWidth = 140, animHeight = 50;
-  let anim1Width = 50, anim1Height = 50;
-  let shape1CenterX = 0, shape1CenterY = 0;
-  let mainIslandCenterX = 0, mainIslandCenterY = 0;
+  let animWidth = 140,
+    animHeight = 50;
+  let anim1Width = 50,
+    anim1Height = 50;
+  let shape1CenterX = 0,
+    shape1CenterY = 0;
+  let mainIslandCenterX = 0,
+    mainIslandCenterY = 0;
   // Shape 1 (副岛) spring
-  let pointer1X = 0, pointer1Y = 0;
-  let spring1X = 0, spring1Y = 0;
-  let spring1VX = 0, spring1VY = 0;
-  let springSpeedX = 0, springSpeedY = 0;
-  let lastSpringValueX = 0, lastSpringValueY = 0;
+  let pointer1X = 0,
+    pointer1Y = 0;
+  let spring1X = 0,
+    spring1Y = 0;
+  let spring1VX = 0,
+    spring1VY = 0;
+  let springSpeedX = 0,
+    springSpeedY = 0;
+  let lastSpringValueX = 0,
+    lastSpringValueY = 0;
   let lastSpringTime = null;
 
   // Blur kernel (precomputed once)
@@ -119,11 +135,13 @@
     const kernel = [];
     let sum = 0;
     for (let i = 0; i <= radius; i++) {
-      const weight = Math.exp(-0.5 * (i * i) / (sigma * sigma));
+      const weight = Math.exp((-0.5 * (i * i)) / (sigma * sigma));
       kernel.push(weight);
       sum += i === 0 ? weight : weight * 2;
     }
-    return kernel.map(function (w) { return w / sum; });
+    return kernel.map(function (w) {
+      return w / sum;
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -139,8 +157,10 @@
 
     var innerDt = dt / SPRING_SUBSTEPS;
     for (var s = 0; s < SPRING_SUBSTEPS; s++) {
-      var ax = SPRING_STIFFNESS * (pointerX - springX) - SPRING_DAMPING * springVX;
-      var ay = SPRING_STIFFNESS * (pointerY - springY) - SPRING_DAMPING * springVY;
+      var ax =
+        SPRING_STIFFNESS * (pointerX - springX) - SPRING_DAMPING * springVX;
+      var ay =
+        SPRING_STIFFNESS * (pointerY - springY) - SPRING_DAMPING * springVY;
       springVX += ax * innerDt;
       springVY += ay * innerDt;
       springX += springVX * innerDt;
@@ -168,8 +188,10 @@
     if (dt <= 0 || dt > 0.5) return;
     var innerDt = dt / SPRING_SUBSTEPS;
     for (var s = 0; s < SPRING_SUBSTEPS; s++) {
-      var ax = SPRING_STIFFNESS * (pointer1X - spring1X) - SPRING_DAMPING * spring1VX;
-      var ay = SPRING_STIFFNESS * (pointer1Y - spring1Y) - SPRING_DAMPING * spring1VY;
+      var ax =
+        SPRING_STIFFNESS * (pointer1X - spring1X) - SPRING_DAMPING * spring1VX;
+      var ay =
+        SPRING_STIFFNESS * (pointer1Y - spring1Y) - SPRING_DAMPING * spring1VY;
       spring1VX += ax * innerDt;
       spring1VY += ay * innerDt;
       spring1X += spring1VX * innerDt;
@@ -185,7 +207,7 @@
     gl.shaderSource(shader, source);
     gl.compileShader(shader);
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      console.error('Shader compile error:', gl.getShaderInfoLog(shader));
+      console.error("Shader compile error:", gl.getShaderInfoLog(shader));
       gl.deleteShader(shader);
       return null;
     }
@@ -198,7 +220,7 @@
     gl.attachShader(program, fs);
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      console.error('Program link error:', gl.getProgramInfoLog(program));
+      console.error("Program link error:", gl.getProgramInfoLog(program));
       return null;
     }
     return program;
@@ -228,13 +250,12 @@
 
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-      -1, -1,
-       1, -1,
-      -1,  1,
-       1,  1,
-    ]), gl.STATIC_DRAW);
-    const loc = gl.getAttribLocation(program, 'a_position');
+    gl.bufferData(
+      gl.ARRAY_BUFFER,
+      new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
+      gl.STATIC_DRAW,
+    );
+    const loc = gl.getAttribLocation(program, "a_position");
     gl.enableVertexAttribArray(loc);
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
@@ -248,7 +269,17 @@
   function createFBO(gl, w, h) {
     const tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, w, h, 0, gl.RGBA, gl.HALF_FLOAT, null);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA16F,
+      w,
+      h,
+      0,
+      gl.RGBA,
+      gl.HALF_FLOAT,
+      null,
+    );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -256,7 +287,13 @@
 
     const fbo = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    gl.framebufferTexture2D(
+      gl.FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      tex,
+      0,
+    );
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
     return { fbo: fbo, tex: tex };
@@ -264,7 +301,17 @@
 
   function resizeFBO(gl, fboObj, w, h) {
     gl.bindTexture(gl.TEXTURE_2D, fboObj.tex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, w, h, 0, gl.RGBA, gl.HALF_FLOAT, null);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA16F,
+      w,
+      h,
+      0,
+      gl.RGBA,
+      gl.HALF_FLOAT,
+      null,
+    );
     gl.bindTexture(gl.TEXTURE_2D, null);
   }
 
@@ -284,8 +331,8 @@
     const ph = Math.round(h * dpr);
     canvas.width = pw;
     canvas.height = ph;
-    canvas.style.width = w + 'px';
-    canvas.style.height = h + 'px';
+    canvas.style.width = w + "px";
+    canvas.style.height = h + "px";
 
     gl.viewport(0, 0, pw, ph);
     resizeFBO(gl, bgFBO, pw, ph);
@@ -302,58 +349,75 @@
   let _prevOverlayExpanded = false;
   let _prevOverlayCompact = false;
   function syncOverlay() {
-    var ovLeft = document.getElementById('overlay-left');
-    var ovRight = document.getElementById('overlay-right');
-    var shadow = document.getElementById('island-shadow');
-    if (!ovLeft) return; // not in DOM (standalone mode)
-    var expanded = isHovering;
-    var compact = isCompactMode;
-    // Only update classes when state changes (avoid layout thrash)
-    if (expanded !== _prevOverlayExpanded) {
-      ovLeft.classList.toggle('expanded', expanded);
-      ovRight.classList.toggle('expanded', expanded);
-      _prevOverlayExpanded = expanded;
-    }
-    if (compact !== _prevOverlayCompact) {
-      ovLeft.classList.toggle('compact', compact);
-      ovRight.classList.toggle('compact', compact);
-      _prevOverlayCompact = compact;
+    // In Tauri mode, DOM class toggling is handled by capsule-interaction.js
+    if (!isTauriMode) {
+      var ovLeft = document.getElementById("left-panel");
+      var ovRight = document.getElementById("right-panel");
+      if (ovLeft) {
+        var expanded = isHovering;
+        var compact = isCompactMode;
+        if (expanded !== _prevOverlayExpanded) {
+          ovLeft.classList.toggle("expanded", expanded);
+          ovRight.classList.toggle("expanded", expanded);
+          _prevOverlayExpanded = expanded;
+        }
+        if (compact !== _prevOverlayCompact) {
+          ovLeft.classList.toggle("compact", compact);
+          ovRight.classList.toggle("compact", compact);
+          _prevOverlayCompact = compact;
+        }
+      }
     }
     // 动态更新阴影位置和大小，与 WebGL 岛完全匹配
-    var shadowL = document.getElementById('shadow-left');
-    var shadowR = document.getElementById('shadow-right');
+    var shadowL = document.getElementById("shadow-left");
+    var shadowR = document.getElementById("shadow-right");
     if (shadowL && shadowR) {
       var gap = C.islandGap;
       var totalW = animWidth + gap + anim1Width;
       var centerX = canvasW / 2;
-      var topY = canvasH - springY / dpr - animHeight / 2 + (C.cssShadowTop || 0);
+      var topY =
+        canvasH - springY / dpr - animHeight / 2 + (C.cssShadowTop || 0);
       var radiusL = Math.min(C.shapeRadius, animHeight / 2);
       var radiusR = Math.min(C.shape1Radius, anim1Height / 2);
       var shadowBlur = C.cssShadowBlur || 5;
       var shadowOpacity = C.cssShadowOpacity || 0.25;
       var shadowOffsetY = C.cssShadowOffsetY || 0;
-      var shadowCSS = '0 ' + shadowOffsetY + 'px ' + shadowBlur + 'px rgba(0,0,0,' + shadowOpacity + '), '
-                    + 'inset 0 ' + shadowOffsetY + 'px ' + shadowBlur + 'px rgba(0,0,0,' + shadowOpacity + ')';
+      var shadowCSS =
+        "0 " +
+        shadowOffsetY +
+        "px " +
+        shadowBlur +
+        "px rgba(0,0,0," +
+        shadowOpacity +
+        "), " +
+        "inset 0 " +
+        shadowOffsetY +
+        "px " +
+        shadowBlur +
+        "px rgba(0,0,0," +
+        shadowOpacity +
+        ")";
       // 左岛阴影
       var leftX = centerX - totalW / 2;
-      shadowL.style.left = leftX + 'px';
-      shadowL.style.top = topY + 'px';
-      shadowL.style.width = animWidth + 'px';
-      shadowL.style.height = animHeight + 'px';
-      shadowL.style.borderRadius = radiusL + 'px';
+      shadowL.style.left = leftX + "px";
+      shadowL.style.top = topY + "px";
+      shadowL.style.width = animWidth + "px";
+      shadowL.style.height = animHeight + "px";
+      shadowL.style.borderRadius = radiusL + "px";
       shadowL.style.boxShadow = shadowCSS;
       // 右岛阴影
       var rightX = leftX + animWidth + gap;
-      shadowR.style.left = rightX + 'px';
-      shadowR.style.top = topY + 'px';
-      shadowR.style.width = anim1Width + 'px';
-      shadowR.style.height = anim1Height + 'px';
-      shadowR.style.borderRadius = radiusR + 'px';
+      shadowR.style.left = rightX + "px";
+      shadowR.style.top = topY + "px";
+      shadowR.style.width = anim1Width + "px";
+      shadowR.style.height = anim1Height + "px";
+      shadowR.style.borderRadius = radiusR + "px";
       shadowR.style.boxShadow = shadowCSS;
     }
   }
 
-  var _frameCount = 0, _fpsTime = 0;
+  var _frameCount = 0,
+    _fpsTime = 0;
 
   function render(timestamp) {
     requestAnimationFrame(render);
@@ -367,7 +431,10 @@
     // FPS counter
     _frameCount++;
     if (timestamp - _fpsTime >= 2000) {
-      console.log('[Render] FPS:', Math.round(_frameCount * 1000 / (timestamp - _fpsTime)));
+      console.log(
+        "[Render] FPS:",
+        Math.round((_frameCount * 1000) / (timestamp - _fpsTime)),
+      );
       _frameCount = 0;
       _fpsTime = timestamp;
     }
@@ -383,8 +450,12 @@
     var base1H = isCompactMode ? C.compactShape1Height : C.shape1Height;
     var expW = isCompactMode ? C.compactExpandedWidth : C.expandedWidth;
     var expH = isCompactMode ? C.compactExpandedHeight : C.expandedHeight;
-    var exp1W = isCompactMode ? C.compactExpandedShape1Width : C.expandedShape1Width;
-    var exp1H = isCompactMode ? C.compactExpandedShape1Height : C.expandedShape1Height;
+    var exp1W = isCompactMode
+      ? C.compactExpandedShape1Width
+      : C.expandedShape1Width;
+    var exp1H = isCompactMode
+      ? C.compactExpandedShape1Height
+      : C.expandedShape1Height;
     var targetW = isHovering ? expW : baseW;
     var targetH = isHovering ? expH : baseH;
     var target1W = isHovering ? exp1W : base1W;
@@ -412,9 +483,15 @@
     // Lock shapes at center-top, 50px from top, side by side
     var totalW = animWidth + C.islandGap + anim1Width;
     var centerX = (canvasW / 2) * dpr;
-    var baseCenterY = (canvasH - 50) * dpr;
+    var baseCenterY = (canvasH - 36) * dpr;
     // 用目标高度（非动画高度）计算中心，避免弹簧追逐移动目标产生振荡
-    var targetH = isHovering ? (isCompactMode ? C.compactExpandedHeight : C.expandedHeight) : (isCompactMode ? C.compactHeight : C.shapeHeight);
+    var targetH = isHovering
+      ? isCompactMode
+        ? C.compactExpandedHeight
+        : C.expandedHeight
+      : isCompactMode
+        ? C.compactHeight
+        : C.shapeHeight;
     var centerY = baseCenterY - ((targetH - C.shapeHeight) / 2) * dpr;
     // Both shapes track one pointer
     pointerX = centerX;
@@ -435,7 +512,7 @@
     var uMouseSpring = [mainIslandCenterX, mainIslandCenterY];
     var uShapeWidth = shapeSizeSpringX;
     var uShapeHeight = shapeSizeSpringY;
-    var uShapeRadius = Math.min(C.shapeRadius, animHeight / 2);  // clamp to half height for capsule
+    var uShapeRadius = Math.min(C.shapeRadius, animHeight / 2); // clamp to half height for capsule
     var uShapeRoundness = C.shapeRoundness;
     var uShape1Width = anim1Width;
     var uShape1Height = anim1Height;
@@ -466,12 +543,18 @@
     gl.uniform2f(bgU.u_shape1Center, shape1CenterX, shape1CenterY);
     gl.uniform1f(bgU.u_shadowExpand, C.shadowExpand);
     gl.uniform1f(bgU.u_shadowFactor, C.shadowFactor / 100);
-    gl.uniform2f(bgU.u_shadowPosition, -C.shadowPosition.x, -C.shadowPosition.y);
+    gl.uniform2f(
+      bgU.u_shadowPosition,
+      -C.shadowPosition.x,
+      -C.shadowPosition.y,
+    );
     gl.uniform1i(bgU.u_bgType, C.bgType);
     gl.uniform1i(bgU.u_showShape1, uShowShape1);
 
     // Background texture (prefer screen capture in Tauri mode)
-    var activeBgTex = null, activeBgRatio = 1, activeBgReady = false;
+    var activeBgTex = null,
+      activeBgRatio = 1,
+      activeBgReady = false;
     if (isTauriMode && screenCapTexture && screenCapReady) {
       activeBgTex = screenCapTexture;
       activeBgRatio = screenCapRatio;
@@ -496,7 +579,7 @@
     }
 
     for (var i = 0; i <= C.blurRadius && i < blurWeights.length; i++) {
-      gl.uniform1f(bgU['u_blurWeights[' + i + ']'], blurWeights[i]);
+      gl.uniform1f(bgU["u_blurWeights[" + i + "]"], blurWeights[i]);
     }
     gl.uniform1i(bgU.u_blurRadius, C.blurRadius);
 
@@ -517,7 +600,7 @@
       gl.uniform2f(vblurU.u_resolution, uResolution[0], uResolution[1]);
       gl.uniform1i(vblurU.u_blurRadius, C.blurRadius);
       for (var i = 0; i <= C.blurRadius && i < blurWeights.length; i++) {
-        gl.uniform1f(vblurU['u_blurWeights[' + i + ']'], blurWeights[i]);
+        gl.uniform1f(vblurU["u_blurWeights[" + i + "]"], blurWeights[i]);
       }
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
@@ -530,7 +613,7 @@
       gl.uniform2f(hblurU.u_resolution, uResolution[0], uResolution[1]);
       gl.uniform1i(hblurU.u_blurRadius, C.blurRadius);
       for (var i = 0; i <= C.blurRadius && i < blurWeights.length; i++) {
-        gl.uniform1f(hblurU['u_blurWeights[' + i + ']'], blurWeights[i]);
+        gl.uniform1f(hblurU["u_blurWeights[" + i + "]"], blurWeights[i]);
       }
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
@@ -570,19 +653,24 @@
     gl.uniform1i(mainU.u_showShape1, uShowShape1);
 
     // Pass-specific uniforms (mainPass) — exact /100 divisions from App.tsx
-    gl.uniform4f(mainU.u_tint,
-      C.tint.r / 255, C.tint.g / 255, C.tint.b / 255, C.tint.a);
+    gl.uniform4f(
+      mainU.u_tint,
+      C.tint.r / 255,
+      C.tint.g / 255,
+      C.tint.b / 255,
+      C.tint.a,
+    );
     gl.uniform1f(mainU.u_refThickness, C.refThickness);
     gl.uniform1f(mainU.u_refFactor, C.refFactor);
     gl.uniform1f(mainU.u_refDispersion, C.refDispersion);
     gl.uniform1f(mainU.u_refFresnelRange, C.refFresnelRange);
-    gl.uniform1f(mainU.u_refFresnelHardness, C.refFresnelHardness / 100);  // /100
-    gl.uniform1f(mainU.u_refFresnelFactor, C.refFresnelFactor / 100);    // /100
+    gl.uniform1f(mainU.u_refFresnelHardness, C.refFresnelHardness / 100); // /100
+    gl.uniform1f(mainU.u_refFresnelFactor, C.refFresnelFactor / 100); // /100
     gl.uniform1f(mainU.u_glareRange, C.glareRange);
-    gl.uniform1f(mainU.u_glareHardness, C.glareHardness / 100);          // /100
-    gl.uniform1f(mainU.u_glareConvergence, C.glareConvergence / 100);    // /100
+    gl.uniform1f(mainU.u_glareHardness, C.glareHardness / 100); // /100
+    gl.uniform1f(mainU.u_glareConvergence, C.glareConvergence / 100); // /100
     gl.uniform1f(mainU.u_glareOppositeFactor, C.glareOppositeFactor / 100); // /100
-    gl.uniform1f(mainU.u_glareFactor, C.glareFactor / 100);              // /100
+    gl.uniform1f(mainU.u_glareFactor, C.glareFactor / 100); // /100
     gl.uniform1i(mainU.u_blurEdge, C.blurEdge ? 1 : 0);
     gl.uniform1i(mainU.STEP, C.step);
     gl.uniform1i(mainU.u_tauriMode, isTauriMode ? 1 : 0);
@@ -597,9 +685,9 @@
   // ---------------------------------------------------------------------------
   function init() {
     isTauriMode = !!window.__TAURI__;
-    canvas = document.getElementById('glCanvas');
+    canvas = document.getElementById("glCanvas");
 
-    gl = canvas.getContext('webgl2', {
+    gl = canvas.getContext("webgl2", {
       preserveDrawingBuffer: true,
       antialias: false,
       alpha: isTauriMode ? true : false,
@@ -607,13 +695,13 @@
     });
 
     if (!gl) {
-      console.error('WebGL2 not supported');
+      console.error("WebGL2 not supported");
       return;
     }
 
-    var ext = gl.getExtension('EXT_color_buffer_float');
+    var ext = gl.getExtension("EXT_color_buffer_float");
     if (!ext) {
-      console.error('EXT_color_buffer_float not supported');
+      console.error("EXT_color_buffer_float not supported");
       return;
     }
 
@@ -623,91 +711,154 @@
     canvasH = window.innerHeight;
     canvas.width = Math.round(canvasW * dpr);
     canvas.height = Math.round(canvasH * dpr);
-    canvas.style.width = canvasW + 'px';
-    canvas.style.height = canvasH + 'px';
+    canvas.style.width = canvasW + "px";
+    canvas.style.height = canvasH + "px";
     gl.viewport(0, 0, canvas.width, canvas.height);
 
     // Load shaders
     Promise.all([
-      fetch('shaders/vertex.glsl').then(function (r) { return r.text(); }),
-      fetch('shaders/fragment-bg.glsl').then(function (r) { return r.text(); }),
-      fetch('shaders/fragment-vblur.glsl').then(function (r) { return r.text(); }),
-      fetch('shaders/fragment-hblur.glsl').then(function (r) { return r.text(); }),
-      fetch('shaders/fragment-main.glsl').then(function (r) { return r.text(); }),
-    ]).then(function (sources) {
-      var vsSrc = sources[0];
-      var bgSrc = sources[1];
-      var vbSrc = sources[2];
-      var hbSrc = sources[3];
-      var mainSrc = sources[4];
+      fetch("shaders/vertex.glsl").then(function (r) {
+        return r.text();
+      }),
+      fetch("shaders/fragment-bg.glsl").then(function (r) {
+        return r.text();
+      }),
+      fetch("shaders/fragment-vblur.glsl").then(function (r) {
+        return r.text();
+      }),
+      fetch("shaders/fragment-hblur.glsl").then(function (r) {
+        return r.text();
+      }),
+      fetch("shaders/fragment-main.glsl").then(function (r) {
+        return r.text();
+      }),
+    ])
+      .then(function (sources) {
+        var vsSrc = sources[0];
+        var bgSrc = sources[1];
+        var vbSrc = sources[2];
+        var hbSrc = sources[3];
+        var mainSrc = sources[4];
 
-      bgProgram = buildProgram(gl, vsSrc, bgSrc);
-      vblurProgram = buildProgram(gl, vsSrc, vbSrc);
-      hblurProgram = buildProgram(gl, vsSrc, hbSrc);
-      mainProgram = buildProgram(gl, vsSrc, mainSrc);
+        bgProgram = buildProgram(gl, vsSrc, bgSrc);
+        vblurProgram = buildProgram(gl, vsSrc, vbSrc);
+        hblurProgram = buildProgram(gl, vsSrc, hbSrc);
+        mainProgram = buildProgram(gl, vsSrc, mainSrc);
 
-      if (!bgProgram || !vblurProgram || !hblurProgram || !mainProgram) {
-        console.error('Failed to compile/link shader programs');
-        return;
-      }
+        if (!bgProgram || !vblurProgram || !hblurProgram || !mainProgram) {
+          console.error("Failed to compile/link shader programs");
+          return;
+        }
 
-      // Build blur weight uniform names
-      var blurWeightNames = [];
-      for (var i = 0; i <= 200; i++) {
-        blurWeightNames.push('u_blurWeights[' + i + ']');
-      }
+        // Build blur weight uniform names
+        var blurWeightNames = [];
+        for (var i = 0; i <= 200; i++) {
+          blurWeightNames.push("u_blurWeights[" + i + "]");
+        }
 
-      // Cache uniform locations
-      bgU = cacheUniforms(gl, bgProgram, [
-        'u_resolution', 'u_dpr', 'u_time', 'u_mouse', 'u_mouseSpring',
-        'u_mergeRate', 'u_shapeWidth', 'u_shapeHeight', 'u_shapeRadius',
-        'u_shapeRoundness', 'u_shape1Width', 'u_shape1Height', 'u_shape1Radius',
-        'u_shape1Center',
-        'u_shadowExpand', 'u_shadowFactor',
-        'u_shadowPosition', 'u_bgType', 'u_bgTexture', 'u_bgTextureRatio',
-        'u_bgTextureReady', 'u_showShape1', 'u_blurRadius', 'u_tauriMode',
-      ].concat(blurWeightNames));
+        // Cache uniform locations
+        bgU = cacheUniforms(
+          gl,
+          bgProgram,
+          [
+            "u_resolution",
+            "u_dpr",
+            "u_time",
+            "u_mouse",
+            "u_mouseSpring",
+            "u_mergeRate",
+            "u_shapeWidth",
+            "u_shapeHeight",
+            "u_shapeRadius",
+            "u_shapeRoundness",
+            "u_shape1Width",
+            "u_shape1Height",
+            "u_shape1Radius",
+            "u_shape1Center",
+            "u_shadowExpand",
+            "u_shadowFactor",
+            "u_shadowPosition",
+            "u_bgType",
+            "u_bgTexture",
+            "u_bgTextureRatio",
+            "u_bgTextureReady",
+            "u_showShape1",
+            "u_blurRadius",
+            "u_tauriMode",
+          ].concat(blurWeightNames),
+        );
 
-      vblurU = cacheUniforms(gl, vblurProgram, [
-        'u_prevPassTexture', 'u_resolution', 'u_blurRadius',
-      ].concat(blurWeightNames));
+        vblurU = cacheUniforms(
+          gl,
+          vblurProgram,
+          ["u_prevPassTexture", "u_resolution", "u_blurRadius"].concat(
+            blurWeightNames,
+          ),
+        );
 
-      hblurU = cacheUniforms(gl, hblurProgram, [
-        'u_prevPassTexture', 'u_resolution', 'u_blurRadius',
-      ].concat(blurWeightNames));
+        hblurU = cacheUniforms(
+          gl,
+          hblurProgram,
+          ["u_prevPassTexture", "u_resolution", "u_blurRadius"].concat(
+            blurWeightNames,
+          ),
+        );
 
-      mainU = cacheUniforms(gl, mainProgram, [
-        'u_blurredBg', 'u_bg', 'u_resolution', 'u_dpr', 'u_mouse',
-        'u_mouseSpring', 'u_mergeRate', 'u_shapeWidth', 'u_shapeHeight',
-        'u_shapeRadius', 'u_shapeRoundness',
-        'u_shape1Width', 'u_shape1Height', 'u_shape1Radius', 'u_shape1Center',
-        'u_tint', 'u_refThickness',
-        'u_refFactor', 'u_refDispersion', 'u_refFresnelRange',
-        'u_refFresnelHardness', 'u_refFresnelFactor', 'u_glareRange',
-        'u_glareHardness', 'u_glareConvergence', 'u_glareOppositeFactor',
-        'u_glareFactor', 'u_glareAngle', 'u_blurEdge', 'u_showShape1', 'STEP',
-        'u_tauriMode',
-      ]);
+        mainU = cacheUniforms(gl, mainProgram, [
+          "u_blurredBg",
+          "u_bg",
+          "u_resolution",
+          "u_dpr",
+          "u_mouse",
+          "u_mouseSpring",
+          "u_mergeRate",
+          "u_shapeWidth",
+          "u_shapeHeight",
+          "u_shapeRadius",
+          "u_shapeRoundness",
+          "u_shape1Width",
+          "u_shape1Height",
+          "u_shape1Radius",
+          "u_shape1Center",
+          "u_tint",
+          "u_refThickness",
+          "u_refFactor",
+          "u_refDispersion",
+          "u_refFresnelRange",
+          "u_refFresnelHardness",
+          "u_refFresnelFactor",
+          "u_glareRange",
+          "u_glareHardness",
+          "u_glareConvergence",
+          "u_glareOppositeFactor",
+          "u_glareFactor",
+          "u_glareAngle",
+          "u_blurEdge",
+          "u_showShape1",
+          "STEP",
+          "u_tauriMode",
+        ]);
 
-      // Create quad VAO (use bgProgram to find a_position location)
-      quadVAO = createQuadVAO(gl, bgProgram);
+        // Create quad VAO (use bgProgram to find a_position location)
+        quadVAO = createQuadVAO(gl, bgProgram);
 
-      // Create FBOs
-      bgFBO = createFBO(gl, canvas.width, canvas.height);
-      vblurFBO = createFBO(gl, canvas.width, canvas.height);
-      hblurFBO = createFBO(gl, canvas.width, canvas.height);
+        // Create FBOs
+        bgFBO = createFBO(gl, canvas.width, canvas.height);
+        vblurFBO = createFBO(gl, canvas.width, canvas.height);
+        hblurFBO = createFBO(gl, canvas.width, canvas.height);
 
-      // Precompute blur kernel
-      blurWeights = computeGaussianKernel(C.blurRadius);
+        // Precompute blur kernel
+        blurWeights = computeGaussianKernel(C.blurRadius);
 
-      // Set up event listeners
-      setupEvents();
+        // Set up event listeners
+        setupEvents();
 
-      // Start render loop
-      requestAnimationFrame(render);
-    }).catch(function (err) {
-      console.error('Failed to load shaders:', err);
-    });
+        // Start render loop
+        requestAnimationFrame(render);
+      })
+      .catch(function (err) {
+        console.error("Failed to load shaders:", err);
+      });
   }
 
   // ---------------------------------------------------------------------------
@@ -723,58 +874,84 @@
       var s1cx = shape1CenterX / dpr;
       var s1cy = canvasH - shape1CenterY / dpr;
       // Check main island
-      if (mx >= s2cx - animWidth/2 && mx <= s2cx + animWidth/2 &&
-          my >= s2cy - animHeight/2 && my <= s2cy + animHeight/2) return true;
+      if (
+        mx >= s2cx - animWidth / 2 &&
+        mx <= s2cx + animWidth / 2 &&
+        my >= s2cy - animHeight / 2 &&
+        my <= s2cy + animHeight / 2
+      )
+        return true;
       // Check sub island
-      if (mx >= s1cx - anim1Width/2 && mx <= s1cx + anim1Width/2 &&
-          my >= s1cy - anim1Height/2 && my <= s1cy + anim1Height/2) return true;
+      if (
+        mx >= s1cx - anim1Width / 2 &&
+        mx <= s1cx + anim1Width / 2 &&
+        my >= s1cy - anim1Height / 2 &&
+        my <= s1cy + anim1Height / 2
+      )
+        return true;
       // Check gap area between shapes
-      var gapLeft = Math.max(s2cx + animWidth/2, s1cx - anim1Width/2);
-      var gapRight = Math.min(s1cx + anim1Width/2, s2cx + animWidth/2);
+      var gapLeft = Math.max(s2cx + animWidth / 2, s1cx - anim1Width / 2);
+      var gapRight = Math.min(s1cx + anim1Width / 2, s2cx + animWidth / 2);
       // Actually just check if within the bounding box of both shapes combined
-      var allLeft = Math.min(s2cx - animWidth/2, s1cx - anim1Width/2);
-      var allRight = Math.max(s2cx + animWidth/2, s1cx + anim1Width/2);
-      var allTop = Math.min(s2cy - animHeight/2, s1cy - anim1Height/2);
-      var allBot = Math.max(s2cy + animHeight/2, s1cy + anim1Height/2);
+      var allLeft = Math.min(s2cx - animWidth / 2, s1cx - anim1Width / 2);
+      var allRight = Math.max(s2cx + animWidth / 2, s1cx + anim1Width / 2);
+      var allTop = Math.min(s2cy - animHeight / 2, s1cy - anim1Height / 2);
+      var allBot = Math.max(s2cy + animHeight / 2, s1cy + anim1Height / 2);
       // Generous hit area: use expanded bounding box
-      if (mx >= allLeft - 5 && mx <= allRight + 5 &&
-          my >= allTop - 10 && my <= allBot + 10) return true;
+      if (
+        mx >= allLeft - 5 &&
+        mx <= allRight + 5 &&
+        my >= allTop - 10 &&
+        my <= allBot + 10
+      )
+        return true;
       return false;
     }
 
-    canvas.addEventListener('pointermove', function (e) {
+    canvas.addEventListener("pointermove", function (e) {
       var mx = e.clientX;
       var my = e.clientY;
-      // Update hover state
-      isHovering = isInsideIsland(mx, my);
-    });
-
-    canvas.addEventListener('pointerleave', function () {
-      isHovering = false;
-    });
-
-    // Double-click on right island (副岛) to toggle compact mode
-    canvas.addEventListener('dblclick', function (e) {
-      var mx = e.clientX;
-      var my = e.clientY;
-      var s1cx = shape1CenterX / dpr;
-      var s1cy = canvasH - shape1CenterY / dpr;
-      if (mx >= s1cx - anim1Width/2 - 10 && mx <= s1cx + anim1Width/2 + 10 &&
-          my >= s1cy - anim1Height/2 - 10 && my <= s1cy + anim1Height/2 + 10) {
-        isCompactMode = !isCompactMode;
+      // In Tauri mode, expand is driven by Rust zone detection (set-expand event)
+      if (!isTauriMode) {
+        isHovering = isInsideIsland(mx, my);
       }
     });
 
+    canvas.addEventListener("pointerleave", function () {
+      // In Tauri mode, expand is driven by Rust zone detection
+      if (!isTauriMode) {
+        isHovering = false;
+      }
+    });
+
+    // Double-click on right island to toggle compact mode (standalone mode only)
+    if (!isTauriMode) {
+      canvas.addEventListener("dblclick", function (e) {
+        var mx = e.clientX;
+        var my = e.clientY;
+        var s1cx = shape1CenterX / dpr;
+        var s1cy = canvasH - shape1CenterY / dpr;
+        if (
+          mx >= s1cx - anim1Width / 2 - 10 &&
+          mx <= s1cx + anim1Width / 2 + 10 &&
+          my >= s1cy - anim1Height / 2 - 10 &&
+          my <= s1cy + anim1Height / 2 + 10
+        ) {
+          isCompactMode = !isCompactMode;
+        }
+      });
+    }
+
     // Resize
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
 
     // Image upload
-    var fileInput = document.getElementById('file-input');
-    var uploadBtn = document.getElementById('upload-btn');
-    uploadBtn.addEventListener('click', function () {
+    var fileInput = document.getElementById("file-input");
+    var uploadBtn = document.getElementById("upload-btn");
+    uploadBtn.addEventListener("click", function () {
       fileInput.click();
     });
-    fileInput.addEventListener('change', function (e) {
+    fileInput.addEventListener("change", function (e) {
       var file = e.target.files[0];
       if (!file) return;
 
@@ -786,9 +963,20 @@
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, bgTexture);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.RGBA,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          img,
+        );
         gl.generateMipmap(gl.TEXTURE_2D);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        gl.texParameteri(
+          gl.TEXTURE_2D,
+          gl.TEXTURE_MIN_FILTER,
+          gl.LINEAR_MIPMAP_LINEAR,
+        );
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -805,13 +993,18 @@
 
   // Restore current state from localStorage (persisted by controls.js)
   try {
-    var saved = localStorage.getItem('liquid-glass-current-state');
+    var saved = localStorage.getItem("liquid-glass-current-state");
     if (saved) {
       var parsed = JSON.parse(saved);
       var keys = Object.keys(parsed);
       for (var i = 0; i < keys.length; i++) {
         var k = keys[i];
-        if (typeof parsed[k] === 'object' && parsed[k] !== null && !Array.isArray(parsed[k]) && typeof C[k] === 'object') {
+        if (
+          typeof parsed[k] === "object" &&
+          parsed[k] !== null &&
+          !Array.isArray(parsed[k]) &&
+          typeof C[k] === "object"
+        ) {
           var subKeys = Object.keys(parsed[k]);
           for (var j = 0; j < subKeys.length; j++) {
             C[k][subKeys[j]] = parsed[k][subKeys[j]];
@@ -821,29 +1014,50 @@
         }
       }
     }
-  } catch (e) { /* ignore */ }
+  } catch (e) {
+    /* ignore */
+  }
 
   // Expose config for controls panel
   window.__liquidGlassConfig = C;
   window.__liquidGlassState = {
-    isHovering: function() { return isHovering; },
-    setHover: function(v) { isHovering = v; },
-    setScreenTexture: function(tex, ratio) { screenCapTexture = tex; screenCapRatio = ratio; screenCapReady = true; },
-    isCompactMode: function() { return isCompactMode; },
-    setCompactMode: function(v) { isCompactMode = v; },
-    animWidth: function() { return animWidth; },
-    animHeight: function() { return animHeight; },
-    anim1Width: function() { return anim1Width; },
-    anim1Height: function() { return anim1Height; }
+    isHovering: function () {
+      return isHovering;
+    },
+    setHover: function (v) {
+      isHovering = v;
+    },
+    setScreenTexture: function (tex, ratio) {
+      screenCapTexture = tex;
+      screenCapRatio = ratio;
+      screenCapReady = true;
+    },
+    isCompactMode: function () {
+      return isCompactMode;
+    },
+    setCompactMode: function (v) {
+      isCompactMode = v;
+    },
+    animWidth: function () {
+      return animWidth;
+    },
+    animHeight: function () {
+      return animHeight;
+    },
+    anim1Width: function () {
+      return anim1Width;
+    },
+    anim1Height: function () {
+      return anim1Height;
+    },
   };
 
   // ---------------------------------------------------------------------------
   // Boot — deferred to ensure window dimensions are available
   // ---------------------------------------------------------------------------
-  window.addEventListener('load', function () {
+  window.addEventListener("load", function () {
     requestAnimationFrame(function () {
       init();
     });
   });
-
 })();

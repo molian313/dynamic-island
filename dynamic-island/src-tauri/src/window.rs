@@ -8,10 +8,11 @@ use windows::Win32::UI::WindowsAndMessaging::*;
 
 pub struct DebugClickState(pub Arc<AtomicBool>);
 
-const CAPSULE_TOP_PAD: f64 = 50.0;
+const CAPSULE_TOP_PAD: f64 = 11.0;
 const CAPSULE_COLLAPSED_H: f64 = 50.0;
+const CAPSULE_EXPANDED_W: f64 = 340.0;
 const CAPSULE_EXPANDED_H: f64 = 74.0;
-const ZONE_HALF: f64 = 150.0;
+const ZONE_HALF: f64 = 75.0;
 const ZONE_TOP: f64 = 15.0;
 
 pub fn set_click_through(hwnd: HWND, through: bool) {
@@ -81,11 +82,15 @@ pub fn setup_click_through(app: &tauri::App, debug_click_state: Arc<AtomicBool>)
                 let rect = get_window_rect(hwnd);
                 let on_capsule = if let Some(rect) = rect {
                     let win_w = (rect.right - rect.left) as f64 / scale;
-                    let cw = if expanded { 500.0 } else { 196.0 };
-                    let ch = if expanded { CAPSULE_EXPANDED_H } else { CAPSULE_COLLAPSED_H };
+                    let (cw, ch) = if expanded {
+                        (CAPSULE_EXPANDED_W + 240.0, CAPSULE_EXPANDED_H)
+                    } else {
+                        (196.0, CAPSULE_COLLAPSED_H)
+                    };
                     let win_x = rect.left as f64;
+                    let win_y = rect.top as f64;
                     let capsule_x = win_x + (win_w * scale - cw * scale) / 2.0;
-                    let capsule_y = CAPSULE_TOP_PAD * scale;
+                    let capsule_y = win_y + CAPSULE_TOP_PAD * scale;
                     let fmx = mx as f64;
                     let fmy = my as f64;
                     fmx >= capsule_x && fmx <= capsule_x + cw * scale && fmy >= capsule_y && fmy <= capsule_y + ch * scale
@@ -155,6 +160,43 @@ fn get_window_rect(hwnd: HWND) -> Option<windows::Win32::Foundation::RECT> {
         } else {
             None
         }
+    }
+}
+
+#[tauri::command]
+pub fn show_context_menu(app: tauri::AppHandle, window: tauri::WebviewWindow) {
+    let Some((x, y)) = get_cursor_pos() else { return };
+    let Ok(hwnd) = window.hwnd() else { return };
+
+    let cmd_id: i32 = unsafe {
+        let hwnd = HWND(hwnd.0);
+        let Ok(h_menu) = CreatePopupMenu() else { return };
+        let _ = AppendMenuW(h_menu, MF_STRING, 1, windows::core::w!("收起"));
+        let _ = AppendMenuW(h_menu, MF_STRING, 2, windows::core::w!("设置"));
+        let cmd = TrackPopupMenu(
+            h_menu,
+            TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RETURNCMD,
+            x,
+            y,
+            None,
+            hwnd,
+            None,
+        ).0;
+        let _ = DestroyMenu(h_menu);
+        cmd
+    };
+
+    match cmd_id {
+        1 => {
+            let _ = app.emit("context-menu-action", "minimize");
+        }
+        2 => {
+            thread::spawn(move || {
+                thread::sleep(Duration::from_millis(50));
+                crate::settings::open_settings(app);
+            });
+        }
+        _ => {}
     }
 }
 

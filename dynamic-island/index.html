@@ -6,23 +6,381 @@
   <title>Liquid Glass Island</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    /* === DOM overlay for island content === */
-    #island-overlay {
-      position: fixed;
-      top: 50px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      align-items: flex-start;
-      gap: 6px;
-      pointer-events: none;
-      z-index: 10;
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
-      -webkit-font-smoothing: antialiased;
-      transition: top 0.05s linear;
+    /* ===== Reset ===== */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ===== Spring Animations ===== */
+    @keyframes springWidthExpand {
+      0% { transform: scaleX(0.92); }
+      35% { transform: scaleX(1.025); }
+      55% { transform: scaleX(0.99); }
+      75% { transform: scaleX(1.005); }
+      100% { transform: scaleX(1); }
     }
 
-    /* Shadow layer - 两个独立阴影 */
+    html, body {
+      width: 100vw;
+      height: fit-content;
+      background: transparent;
+      display: block;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+      overflow: hidden;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    :root {
+      --adaptive-text: #ffffff;
+    }
+
+    /* ===== Main Capsule ===== */
+    #island-capsule {
+      width: fit-content;
+      height: 50px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      position: fixed;
+      top: 11px;
+      left: 50%;
+      transform: translateX(-50%);
+      pointer-events: auto;
+      background: transparent;
+      transition: height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  border-radius 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      will-change: height, border-radius;
+      isolation: isolate;
+      z-index: 100;
+    }
+
+    #island-capsule.expanded {
+      height: 74px;
+      border-radius: 35px;
+    }
+
+    /* ===== Left Panel ===== */
+    .left-panel {
+      height: 50px;
+      background: transparent;
+      border-radius: 25px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 12px;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      user-select: none;
+      flex-shrink: 0;
+      pointer-events: auto;
+      transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  border-radius 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  background 0.3s ease;
+      will-change: width, height;
+      align-self: flex-start;
+    }
+
+    .left-panel.time-mode { width: 140px; }
+    .left-panel.time-mode.expanded { width: 270px; height: 74px; border-radius: 35px; animation: springWidthExpand 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+    .left-panel.shortcuts-mode { width: 140px; }
+    .left-panel.shortcuts-mode.expanded { width: 270px; height: 74px; border-radius: 35px; animation: springWidthExpand 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+    .left-panel.time-mode.multi-open { width: 86px; }
+    .left-panel.time-mode.multi-open.expanded { width: 200px; height: 74px; border-radius: 35px; animation: springWidthExpand 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .left-panel.time-mode.multi-open.expanded .mem-label { opacity: 0; pointer-events: none; }
+    .left-panel.shortcuts-mode .time-view { display: none; }
+    .left-panel.time-mode .shortcut-view { display: none; }
+    .left-panel.time-mode.multi-open.expanded .net-info { opacity: 0; pointer-events: none; }
+    .left-panel.shortcuts-mode.multi-open { width: 86px; padding: 0 4px; }
+    .shortcuts-mode.multi-open .shortcut-list { gap: 4px; }
+    .shortcuts-mode.multi-open.expanded { width: 200px; height: 74px; border-radius: 35px; animation: springWidthExpand 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .shortcuts-mode.multi-open.expanded .shortcut-list { gap: 6px; }
+
+    /* ===== Right Panel ===== */
+    .right-panel {
+      height: 50px;
+      background: transparent;
+      border-radius: 25px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 8px;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      user-select: none;
+      flex-shrink: 0;
+      pointer-events: auto;
+      transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  gap 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  border-radius 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  background 0.3s ease;
+      will-change: width, height;
+      align-self: flex-start;
+    }
+
+    .right-panel.single-mode { width: 50px; padding: 0; justify-content: center; }
+    .right-panel.single-mode:not(.expanded) .printer-unit { transform: translateX(21px); transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .right-panel.single-mode.expanded .printer-unit { transform: translateX(0); transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .right-panel.single-mode.expanded { width: 140px; height: 74px; border-radius: 35px; padding: 0 8px; justify-content: center; animation: springWidthExpand 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+    .right-panel.multi-mode { width: 104px; gap: 4px; }
+    .right-panel.multi-mode.expanded { width: 210px; height: 74px; border-radius: 35px; gap: 45px; overflow: visible; animation: springWidthExpand 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .multi-mode .printer-unit { transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .multi-mode.expanded .printer-unit { transform: translateX(-16px); }
+
+    /* ===== Time View ===== */
+    .time-view {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      white-space: nowrap;
+      position: relative;
+    }
+
+    .time-text {
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+      min-width: 7.5ch;
+      transition: font-size 0.3s ease, color 0.3s ease;
+      will-change: font-size;
+    }
+
+    .expanded .time-text { font-size: 18px; min-width: 7.5ch; }
+
+    .mem-label {
+      color: #aaa;
+      font-size: 12px;
+      font-weight: 500;
+      position: absolute;
+      top: 50%;
+      right: calc(50% + 60px);
+      transform: translateY(-50%) translateX(60px) scale(0.8);
+      opacity: 0;
+      font-variant-numeric: tabular-nums;
+      pointer-events: none;
+      transition: opacity 0.32s cubic-bezier(0.25, 1, 0.5, 1),
+                  transform 0.32s cubic-bezier(0.25, 1, 0.5, 1),
+                  color 0.3s ease;
+    }
+
+    .expanded .mem-label { opacity: 1; transform: translateY(-50%) translateX(0) scale(1); }
+
+    .net-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 400;
+      color: #777;
+      position: absolute;
+      top: 50%;
+      left: calc(50% + 60px);
+      transform: translateY(-50%) translateX(-60px) scale(0.8);
+      opacity: 0;
+      font-variant-numeric: tabular-nums;
+      pointer-events: none;
+      transition: opacity 0.32s cubic-bezier(0.25, 1, 0.5, 1) 0.05s,
+                  transform 0.32s cubic-bezier(0.25, 1, 0.5, 1) 0.05s,
+                  color 0.3s ease;
+    }
+
+    .expanded .net-info { opacity: 1; transform: translateY(-50%) translateX(0) scale(1); }
+
+    /* ===== Shortcut View ===== */
+    .shortcut-view {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    .shortcut-list {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      transition: gap 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
+    }
+
+    .shortcuts-mode .shortcut-list { opacity: 1; }
+    .shortcuts-mode.multi-open .shortcut-list { max-width: 80px; }
+    .shortcuts-mode.expanded .shortcut-list { gap: 8px; overflow: visible; max-width: none; }
+
+    .sc-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+      position: relative;
+      padding-bottom: 14px;
+      cursor: pointer;
+      transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .sc-item:hover { transform: scale(1.08); }
+    .sc-item.dragging { opacity: 0.3; transform: scale(0.9); }
+
+    .shortcuts-mode .sc-item { width: 36px; }
+    .shortcuts-mode.multi-open .sc-item { width: 34px; }
+    .shortcuts-mode.expanded .sc-item { width: 41px; }
+    .shortcuts-mode.multi-open.expanded .sc-item { width: 36px; }
+
+    .sc-icon { font-size: 18px; line-height: 1; }
+    .sc-icon img { width: 24px; height: 24px; object-fit: contain; }
+
+    .sc-label {
+      font-size: 9px;
+      font-weight: 400;
+      color: #aaa;
+      letter-spacing: 0.02em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), color 0.3s ease;
+    }
+
+    .sc-label-short { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .sc-label-full { font-size: 10px; font-weight: 400; max-width: 68px; opacity: 0; }
+    .shortcuts-mode.expanded .sc-label-short { opacity: 0; }
+    .shortcuts-mode.expanded .sc-label-full { opacity: 1; }
+
+    .shortcut-empty {
+      font-size: 10px;
+      font-weight: 400;
+      color: rgba(255, 255, 255, 0.3);
+      text-align: center;
+      padding: 4px;
+    }
+
+    .shortcut-view.drag-over {
+      background: rgba(34, 197, 94, 0.15);
+      border-radius: 20px;
+    }
+
+    /* ===== Printer Unit ===== */
+    .printer-unit {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 42px;
+      position: relative;
+    }
+
+    .printer-unit-2 {
+      opacity: 0;
+      transform: scale(0.5);
+      transition: opacity 0.3s ease,
+                  transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .multi-mode .printer-unit-2 { opacity: 1; transform: scale(1); }
+
+    .printer-circle {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .printer-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .printer-progress {
+      transition: stroke-dashoffset 0.5s ease, stroke 0.3s ease;
+    }
+
+    .printer-percent {
+      color: white;
+      font-size: 10px;
+      font-weight: 600;
+      position: relative;
+      z-index: 1;
+      opacity: 0.9;
+    }
+
+    .printer-detail {
+      display: flex;
+      flex-direction: column;
+      white-space: nowrap;
+      position: absolute;
+      left: calc(100% + 8px);
+      top: 50%;
+      transform: translateY(-50%) translateX(-20px) scale(0.8);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.32s cubic-bezier(0.25, 1, 0.5, 1),
+                  transform 0.32s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    .expanded .printer-detail { opacity: 1; transform: translateY(-50%) translateX(0) scale(1); }
+
+    .printer-name { color: white; font-size: 12px; font-weight: 500; }
+    .printer-status { color: #888; font-size: 10px; font-weight: 400; opacity: 0.7; }
+
+    .printer-detail-2 {
+      opacity: 0;
+      transition: opacity 0.32s cubic-bezier(0.25, 1, 0.5, 1) 0.08s,
+                  transform 0.32s cubic-bezier(0.25, 1, 0.5, 1) 0.08s;
+    }
+
+    .expanded .printer-detail-2 { opacity: 1; transform: translateY(-50%) translateX(0) scale(1); }
+
+    /* ===== Collapsed Indicator ===== */
+    #collapsed-indicator {
+      display: none;
+      position: fixed;
+      top: 13px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 4px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, #22c55edd, #22c55e, #22c55edd);
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+      cursor: pointer;
+      pointer-events: auto;
+      z-index: 200;
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    #collapsed-indicator:hover {
+      transform: translateX(-50%) scaleX(1.15);
+      width: 70px;
+      box-shadow: 0 0 12px rgba(34, 197, 94, 0.7);
+    }
+
+    #collapsed-indicator:active {
+      transform: translateX(-50%) scaleX(1.05);
+    }
+
+    /* ===== Shadow Layer ===== */
     .island-shadow {
       position: fixed;
       background: transparent;
@@ -30,110 +388,42 @@
       z-index: 5;
     }
 
-    /* Left panel (time + sysinfo) */
-    #overlay-left {
-      width: 140px;
+    /* ===== Debug Button ===== */
+    .debug-expand-btn {
+      position: fixed;
+      top: 11px;
+      left: 5px;
       height: 50px;
-      display: flex;
+      padding: 0 12px;
+      background: #1a1a1a;
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 25px;
+      font-size: 12px;
+      cursor: pointer;
+      z-index: 101;
       align-items: center;
       justify-content: center;
-      gap: 12px;
-      color: #fff;
-      transition: width 0.35s cubic-bezier(0.25, 1, 0.5, 1),
-                  height 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-      overflow: hidden;
+      transition: background 0.2s ease;
       white-space: nowrap;
     }
-    #overlay-left.expanded {
-      width: 270px;
-      height: 74px;
-      flex-direction: column;
-      gap: 2px;
-    }
-    #overlay-left.compact {
-      width: 86px;
-    }
-    #overlay-left.compact.expanded {
-      width: 200px;
+
+    .debug-expand-btn:hover { background: #2a2a2a; }
+
+    /* ===== Reduced Motion ===== */
+    @media (prefers-reduced-motion: reduce) {
+      #island-capsule, .left-panel, .right-panel,
+      .time-view, .time-text, .mem-label, .net-info,
+      .printer-unit, .printer-circle, .printer-unit-2,
+      .printer-detail, .printer-detail-2, .printer-progress,
+      .sc-item, .sc-label, .shortcut-list,
+      #collapsed-indicator {
+        transition-duration: 0.01s !important;
+        animation-duration: 0.01s !important;
+      }
     }
 
-    .time-text {
-      font-size: 14px;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-      font-variant-numeric: tabular-nums;
-      color: rgba(255,255,255,0.95);
-      transition: font-size 0.3s ease;
-    }
-    .expanded .time-text { font-size: 18px; }
-
-    .sysinfo {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-    .expanded .sysinfo { opacity: 1; }
-
-    .mem-label, .net-label {
-      font-size: 10px;
-      font-weight: 400;
-      color: rgba(255,255,255,0.5);
-      font-variant-numeric: tabular-nums;
-    }
-    .net-row {
-      display: flex;
-      gap: 8px;
-    }
-
-    /* Right panel (indicator placeholder) */
-    #overlay-right {
-      width: 50px;
-      height: 50px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: width 0.35s cubic-bezier(0.25, 1, 0.5, 1),
-                  height 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-      overflow: hidden;
-    }
-    #overlay-right.expanded {
-      width: 140px;
-      height: 74px;
-    }
-    #overlay-right.compact {
-      width: 104px;
-    }
-    #overlay-right.compact.expanded {
-      width: 210px;
-      height: 74px;
-    }
-
-    .indicator-ring {
-      width: 42px;
-      height: 42px;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .indicator-ring svg {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-    }
-    .indicator-ring .percent {
-      font-size: 10px;
-      font-weight: 600;
-      color: rgba(255,255,255,0.9);
-      position: relative;
-      z-index: 1;
-    }
-
-    /* Hide controls panel in Tauri mode */
+    /* ===== Tauri Mode: hide dev controls ===== */
     .tauri-mode #controls-panel,
     .tauri-mode #upload-btn,
     .tauri-mode #file-input {
@@ -148,28 +438,59 @@
   <div class="island-shadow" id="shadow-left"></div>
   <div class="island-shadow" id="shadow-right"></div>
 
-  <!-- DOM overlay for island content -->
-  <div id="island-overlay">
-    <div id="overlay-left">
-      <span class="time-text" id="ov-time">--:--:--</span>
-      <div class="sysinfo">
+  <!-- Main capsule -->
+  <div id="island-capsule">
+    <!-- Left panel: time/shortcuts -->
+    <div id="left-panel" class="left-panel time-mode">
+      <div class="time-view">
         <span class="mem-label" id="ov-mem">内存 --</span>
-        <div class="net-row">
-          <span class="net-label" id="ov-net-up">↑ --</span>
-          <span class="net-label" id="ov-net-down">↓ --</span>
+        <span class="time-text" id="ov-time">--:--:--</span>
+        <div class="net-info">
+          <span id="net-up">--</span>
+          <span id="net-down">--</span>
+        </div>
+      </div>
+      <div class="shortcut-view" id="shortcut-area">
+        <div class="shortcut-list" id="shortcut-list"></div>
+      </div>
+    </div>
+
+    <!-- Right panel: printer circles -->
+    <div id="right-panel" class="right-panel single-mode">
+      <div class="printer-unit">
+        <div class="printer-circle">
+          <svg class="printer-svg" viewBox="0 0 30 30">
+            <circle cx="15" cy="15" r="12" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3.2"/>
+            <circle class="printer-progress" cx="15" cy="15" r="12" fill="none" stroke="#22c55e" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="75.4" stroke-dashoffset="75.4" transform="rotate(-90 15 15)"/>
+          </svg>
+          <span class="printer-percent">--</span>
+        </div>
+        <div class="printer-detail">
+          <span class="printer-name">--</span>
+          <span class="printer-status">--</span>
+        </div>
+      </div>
+      <div class="printer-unit printer-unit-2">
+        <div class="printer-circle">
+          <svg class="printer-svg" viewBox="0 0 30 30">
+            <circle cx="15" cy="15" r="12" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3.2"/>
+            <circle class="printer-progress" cx="15" cy="15" r="12" fill="none" stroke="#22c55e" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="75.4" stroke-dashoffset="75.4" transform="rotate(-90 15 15)"/>
+          </svg>
+          <span class="printer-percent">--</span>
+        </div>
+        <div class="printer-detail printer-detail-2">
+          <span class="printer-name">--</span>
+          <span class="printer-status">--</span>
         </div>
       </div>
     </div>
-    <div id="overlay-right">
-      <div class="indicator-ring">
-        <svg viewBox="0 0 30 30">
-          <circle cx="15" cy="15" r="12" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3.2"/>
-          <circle class="printer-progress" cx="15" cy="15" r="12" fill="none" stroke="#22c55e" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="75.4" stroke-dashoffset="75.4" transform="rotate(-90 15 15)"/>
-        </svg>
-        <span class="percent">--</span>
-      </div>
-    </div>
   </div>
+
+  <!-- Collapsed indicator (green bar) -->
+  <div id="collapsed-indicator" title="点击展开"></div>
+
+  <!-- Debug expand/collapse button -->
+  <div id="debug-expand-btn" class="debug-expand-btn" style="display:none;">展开/收起</div>
 
   <!-- Standalone controls (hidden in Tauri mode) -->
   <button id="upload-btn" title="Upload background image">
@@ -182,12 +503,20 @@
   <input type="file" id="file-input" accept="image/*" style="display:none;">
 
   <link rel="stylesheet" href="controls.css">
-  <script src="app.js?v=12"></script>
-  <script src="controls.js?v=12"></script>
+  <script src="app.js?v=13"></script>
+  <script src="controls.js?v=13"></script>
+  <script src="src/dom.js"></script>
+  <script src="src/state.js"></script>
+  <script src="src/modules/view-switcher.js"></script>
+  <script src="src/modules/capsule-interaction.js"></script>
+  <script src="src/modules/minimize.js"></script>
+  <script src="src/modules/printer.js"></script>
+  <script src="src/modules/shortcut.js"></script>
+  <script src="src/modules/brightness.js"></script>
+  <script src="src/main.js"></script>
   <script>
-    // Detect Tauri environment
     (function() {
-      const isTauri = window.__TAURI__ !== undefined;
+      var isTauri = window.__TAURI__ !== undefined;
       if (isTauri) {
         document.documentElement.classList.add('tauri-mode');
         document.body.classList.add('tauri-mode');
@@ -196,14 +525,14 @@
     })();
 
     async function initTauriMode() {
-      const { invoke } = window.__TAURI__.core;
-      const { listen } = window.__TAURI__.event;
+      var invoke = window.__TAURI__.core.invoke;
+      var listen = window.__TAURI__.event.listen;
 
       // Listen for settings changes from the settings window
-      await listen('settings-changed', (event) => {
-        const cfg = event.payload;
+      await listen('settings-changed', function(event) {
+        var cfg = event.payload;
         if (window.__liquidGlassConfig && cfg) {
-          Object.keys(cfg).forEach(k => {
+          Object.keys(cfg).forEach(function(k) {
             if (typeof cfg[k] === 'object' && cfg[k] !== null && !Array.isArray(cfg[k]) && typeof window.__liquidGlassConfig[k] === 'object') {
               Object.assign(window.__liquidGlassConfig[k], cfg[k]);
             } else {
@@ -213,33 +542,12 @@
         }
       });
 
-      // Listen for expand/collapse from Rust
-      await listen('set-expand', (event) => {
-        const expanded = event.payload;
-        const left = document.getElementById('overlay-left');
-        const right = document.getElementById('overlay-right');
-        const shadow = document.getElementById('island-shadow');
-        if (expanded) {
-          left.classList.add('expanded');
-          right.classList.add('expanded');
-          shadow.classList.add('expanded');
-        } else {
-          left.classList.remove('expanded');
-          right.classList.remove('expanded');
-          shadow.classList.remove('expanded');
-        }
-        // Sync hover state with app.js
-        if (window.__liquidGlassState) {
-          window.__liquidGlassState.setHover(expanded);
-        }
-      });
-
       // Update time
       function updateTime() {
-        const now = new Date();
-        const h = String(now.getHours()).padStart(2, '0');
-        const m = String(now.getMinutes()).padStart(2, '0');
-        const s = String(now.getSeconds()).padStart(2, '0');
+        var now = new Date();
+        var h = String(now.getHours()).padStart(2, '0');
+        var m = String(now.getMinutes()).padStart(2, '0');
+        var s = String(now.getSeconds()).padStart(2, '0');
         document.getElementById('ov-time').textContent = h + ':' + m + ':' + s;
       }
       updateTime();
@@ -248,10 +556,10 @@
       // Update system info
       async function updateSysInfo() {
         try {
-          const info = await invoke('get_system_stats');
+          var info = await invoke('get_system_stats');
           document.getElementById('ov-mem').textContent = '内存 ' + info.memory_percent + '%';
-          document.getElementById('ov-net-up').textContent = '↑ ' + info.net_up_speed;
-          document.getElementById('ov-net-down').textContent = '↓ ' + info.net_down_speed;
+          document.getElementById('net-up').textContent = info.net_up_speed;
+          document.getElementById('net-down').textContent = info.net_down_speed;
         } catch (e) {
           console.error('[SysInfo]', e);
         }
@@ -260,29 +568,21 @@
       setInterval(updateSysInfo, 1500);
 
       // Screen capture for glass refraction source
-      let screenTexture = null;
-      let screenTexW = 0, screenTexH = 0;
-      let capturing = false;
-      const CAPTURE_INTERVAL = 7; // 144fps ≈ 6.94ms
-      let _capCount = 0;
+      var screenTexture = null;
+      var screenTexW = 0, screenTexH = 0;
+      var capturing = false;
+      var CAPTURE_INTERVAL = 7;
 
-      // JPEG 解码：base64 → Image → texImage2D
       function decodeJpegB64(b64) {
-        return new Promise((resolve, reject) => {
-          const raw = atob(b64);
-          const bytes = new Uint8Array(raw.length);
-          for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-          const blob = new Blob([bytes], { type: 'image/jpeg' });
-          const url = URL.createObjectURL(blob);
-          const img = new Image();
-          img.onload = () => {
-            URL.revokeObjectURL(url);
-            resolve(img);
-          };
-          img.onerror = () => {
-            URL.revokeObjectURL(url);
-            reject(new Error('JPEG decode failed'));
-          };
+        return new Promise(function(resolve, reject) {
+          var raw = atob(b64);
+          var bytes = new Uint8Array(raw.length);
+          for (var i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+          var blob = new Blob([bytes], { type: 'image/jpeg' });
+          var url = URL.createObjectURL(blob);
+          var img = new Image();
+          img.onload = function() { URL.revokeObjectURL(url); resolve(img); };
+          img.onerror = function() { URL.revokeObjectURL(url); reject(new Error('JPEG decode failed')); };
           img.src = url;
         });
       }
@@ -291,31 +591,23 @@
         if (capturing) return;
         capturing = true;
         try {
-          const glCanvas = document.getElementById('glCanvas');
-          const gl = glCanvas.getContext('webgl2') || glCanvas.getContext('webgl');
+          var glCanvas = document.getElementById('glCanvas');
+          var gl = glCanvas.getContext('webgl2') || glCanvas.getContext('webgl');
           if (!gl) { capturing = false; return; }
 
-          const { getCurrentWindow } = window.__TAURI__.window;
-          const pos = await getCurrentWindow().outerPosition();
-          const dpr = window.devicePixelRatio || 1;
-          const canvasW = glCanvas.width;
-          const canvasH = glCanvas.height;
-          const capW = canvasW;
-          const capH = canvasH;
-          const capScreenX = Math.round(pos.x);
-          const capScreenY = Math.round(pos.y);
+          var getCurrentWindow = window.__TAURI__.window.getCurrentWindow;
+          var pos = await getCurrentWindow().outerPosition();
+          var capW = glCanvas.width;
+          var capH = glCanvas.height;
+          var capScreenX = Math.round(pos.x);
+          var capScreenY = Math.round(pos.y);
 
-          const t1 = performance.now();
-          const b64 = await invoke('capture_screen', { x: capScreenX, y: capScreenY, width: capW, height: capH });
-          const t2 = performance.now();
+          var b64 = await invoke('capture_screen', { x: capScreenX, y: capScreenY, width: capW, height: capH });
           if (!b64) { capturing = false; return; }
 
-          // 解码 JPEG
-          const img = await decodeJpegB64(b64);
-          const t3 = performance.now();
+          var img = await decodeJpegB64(b64);
 
-          // 上传纹理
-          requestAnimationFrame(() => {
+          requestAnimationFrame(function() {
             if (!screenTexture || screenTexW !== capW || screenTexH !== capH) {
               if (screenTexture) gl.deleteTexture(screenTexture);
               screenTexture = gl.createTexture();
@@ -333,33 +625,26 @@
               window.__liquidGlassState.setScreenTexture(screenTexture, capW / capH);
             }
           });
-
-          _capCount++;
-          if (_capCount % 10 === 0) {
-            console.log('[Perf] IPC:', (t2-t1).toFixed(1)+'ms',
-              'Decode:', (t3-t2).toFixed(1)+'ms',
-              'Total:', (t3-t1).toFixed(1)+'ms',
-              'b64:', (b64.length/1024).toFixed(0)+'KB');
-          }
         } catch (e) {
           console.error('[ScreenCap]', e);
         } finally {
           capturing = false;
-          // Schedule next capture AFTER this one completes — no pile-up
           setTimeout(captureAndUpdateScreenTexture, CAPTURE_INTERVAL);
         }
       }
-      // Kick off the first capture
       captureAndUpdateScreenTexture();
 
       // Emit interacting state for click-through
-      const canvas = document.getElementById('glCanvas');
-      canvas.addEventListener('mouseenter', () => {
+      var canvas = document.getElementById('glCanvas');
+      canvas.addEventListener('mouseenter', function() {
         window.__TAURI__.event.emit('set-interacting', true);
       });
-      canvas.addEventListener('mouseleave', () => {
+      canvas.addEventListener('mouseleave', function() {
         window.__TAURI__.event.emit('set-interacting', false);
       });
+
+      // Initialize island modules
+      if (window.IslandMain) window.IslandMain.init();
     }
   </script>
 </body>
