@@ -61,6 +61,33 @@
     var glCanvas = document.getElementById('glCanvas');
     var gl = glCanvas.getContext('webgl2') || glCanvas.getContext('webgl');
 
+    // Use EXT_texture_swizzle to convert BGRA→RGBA on GPU (zero CPU cost)
+    // If unavailable, fall back to JS-side conversion
+    var swizzleExt = gl ? gl.getExtension('EXT_texture_swizzle') : null;
+
+    function setupSwizzleTexture() {
+      if (swizzleExt) {
+        // BGRA: src[0]=B, src[1]=G, src[2]=R, src[3]=A
+        // Want:  R=src[2], G=src[1], B=src[0], A=src[3]
+        gl.texParameteri(gl.TEXTURE_2D, 0x8840, 0x8842); // RED = BLUE
+        gl.texParameteri(gl.TEXTURE_2D, 0x8841, 0x8841); // GREEN = GREEN
+        gl.texParameteri(gl.TEXTURE_2D, 0x8842, 0x8840); // BLUE = RED
+        gl.texParameteri(gl.TEXTURE_2D, 0x8843, 0x8843); // ALPHA = ALPHA
+      }
+    }
+
+    // Fallback: JS-side BGRA→RGBA conversion
+    function convertBgraToRgba(src) {
+      var dst = new Uint8Array(src.length);
+      for (var i = 0, len = src.length; i < len; i += 4) {
+        dst[i]     = src[i + 2]; // R
+        dst[i + 1] = src[i + 1]; // G
+        dst[i + 2] = src[i];     // B
+        dst[i + 3] = src[i + 3]; // A
+      }
+      return dst;
+    }
+
     async function captureScreen() {
       if (capturing) return;
       capturing = true;
@@ -81,31 +108,20 @@
         var raw = await invoke('capture_screen', {
           x: capScreenX, y: capScreenY, width: capW, height: capH
         });
-        if (!raw || raw.length === 0) {
-          console.warn('[ScreenCap] empty result');
-          return;
-        }
+        if (!raw || raw.length === 0) return;
 
-        // Ensure Uint8Array
         var pixels = (raw instanceof Uint8Array) ? raw : new Uint8Array(raw);
 
-        // Expected size: capW * capH * 4
-        var expectedSize = capW * capH * 4;
-        if (pixels.length !== expectedSize) {
-          console.warn('[ScreenCap] size mismatch:', pixels.length, 'expected', expectedSize);
+        // Validate size
+        if (pixels.length !== capW * capH * 4) {
+          console.warn('[ScreenCap] size mismatch:', pixels.length, 'expected', capW * capH * 4);
           return;
         }
 
-        // BGRA → RGBA conversion
-        var rgba = new Uint8Array(pixels.length);
-        for (var i = 0, len = pixels.length; i < len; i += 4) {
-          rgba[i]     = pixels[i + 2]; // R
-          rgba[i + 1] = pixels[i + 1]; // G
-          rgba[i + 2] = pixels[i];     // B
-          rgba[i + 3] = pixels[i + 3]; // A
-        }
+        // Convert BGRA→RGBA: use GPU swizzle if available, else CPU
+        var uploadData = swizzleExt ? pixels : convertBgraToRgba(pixels);
 
-        // Upload to WebGL texture
+        // Create / resize texture
         if (!screenTexture || screenTexW !== capW || screenTexH !== capH) {
           if (screenTexture) gl.deleteTexture(screenTexture);
           screenTexture = gl.createTexture();
@@ -116,9 +132,11 @@
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+          gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+          if (swizzleExt) setupSwizzleTexture();
         }
         gl.bindTexture(gl.TEXTURE_2D, screenTexture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, capW, capH, 0, gl.RGBA, gl.UNSIGNED_BYTE, rgba);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, capW, capH, 0, gl.RGBA, gl.UNSIGNED_BYTE, uploadData);
 
         if (window.__liquidGlassState) {
           window.__liquidGlassState.setScreenTexture(screenTexture, capW / capH);
@@ -127,7 +145,10 @@
         console.error('[ScreenCap]', e);
       } finally {
         capturing = false;
-        setTimeout(captureScreen, 0);
+        // Yield to event loop, then capture next frame.
+        // DXGI AcquireNextFrame blocks until desktop changes,
+        // so setTimeout(16) caps at ~60fps and avoids busy-wait.
+        setTimeout(captureScreen, 16);
       }
     }
     captureScreen();
