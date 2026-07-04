@@ -28,6 +28,27 @@
       }
     });
 
+    // Listen for theme changes
+    var _capturePaused = false;
+    await listen('theme-changed', function(event) {
+      var theme = event.payload && event.payload.theme ? event.payload.theme : 'glass';
+      if (theme === 'classic') {
+        document.body.classList.add('classic-mode');
+        _capturePaused = true;
+      } else {
+        document.body.classList.remove('classic-mode');
+        _capturePaused = false;
+      }
+    });
+
+    // Load initial theme
+    invoke('get_theme').then(function(theme) {
+      if (theme === 'classic') {
+        document.body.classList.add('classic-mode');
+        _capturePaused = true;
+      }
+    }).catch(function() {});
+
     // Update time
     function updateTime() {
       var now = new Date();
@@ -74,6 +95,7 @@
     }
 
     async function captureAndUpdateScreenTexture() {
+      if (_capturePaused) { setTimeout(captureAndUpdateScreenTexture, 200); return; }
       if (capturing) return;
       capturing = true;
       try {

@@ -104,6 +104,13 @@
     invoke('set_debug_mode', { enabled: debugToggle.checked }).catch(function() {});
   });
 
+  // Theme selector
+  var themeSelect = document.getElementById('theme-select');
+  invoke('get_theme').then(function(v) { themeSelect.value = v || 'glass'; }).catch(function() {});
+  themeSelect.addEventListener('change', function() {
+    invoke('save_theme', { theme: themeSelect.value }).catch(function() {});
+  });
+
   // Printer configs
   var printerList = document.getElementById('printer-list');
   var pcfgName = document.getElementById('pcfg-name');

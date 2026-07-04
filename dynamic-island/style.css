@@ -51,3 +51,21 @@ canvas#glCanvas.ready {
   background: rgba(255,255,255,0.2);
   color: rgba(255,255,255,0.9);
 }
+
+/* Classic mode: opaque black background, no WebGL, no shadows */
+.classic-mode {
+  background: #000 !important;
+}
+.classic-mode canvas#glCanvas {
+  display: none !important;
+}
+.classic-mode .island-shadow {
+  display: none !important;
+}
+.classic-mode #island-capsule {
+  opacity: 1 !important;
+}
+.classic-mode .left-panel,
+.classic-mode .right-panel {
+  background: rgba(30, 30, 30, 0.85) !important;
+}
