@@ -39,10 +39,16 @@ html, body {
   pointer-events: auto;
   background: transparent;
   transition: height 0.4s cubic-bezier(0.25, 0.8, 0.5, 0.9),
-              border-radius 0.4s cubic-bezier(0.25, 0.8, 0.5, 0.9);
+              border-radius 0.4s cubic-bezier(0.25, 0.8, 0.5, 0.9),
+              opacity 0.5s ease;
   will-change: height, border-radius;
   isolation: isolate;
   z-index: 100;
+  opacity: 0;
+}
+
+#island-capsule.ready {
+  opacity: 1;
 }
 
 #island-capsule.expanded {

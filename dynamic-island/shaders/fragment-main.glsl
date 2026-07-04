@@ -779,11 +779,11 @@ void main() {
 
   }
 
-  // Tauri mode: make outside-island pixels transparent
-  if (u_tauriMode == 1 && merged > 0.01) {
-    float px = 2.0 / u_resolution.y;
-    float edge = smoothstep(0.0, px, merged);
-    outColor.a *= 1.0 - edge;
+  // Tauri mode: make outside-island pixels fully transparent
+  if (u_tauriMode == 1) {
+    float alphaMask = 1.0 - smoothstep(-0.001, 0.002, merged);
+    outColor.a *= alphaMask;
+    outColor.rgb *= alphaMask;
   }
 
   fragColor = outColor;

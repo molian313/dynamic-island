@@ -27,6 +27,7 @@ uniform sampler2D u_bgTexture;
 uniform float u_bgTextureRatio;
 uniform int u_bgTextureReady;
 uniform int u_showShape1;
+uniform int u_tauriMode;
 
 float chessboard(vec2 uv, float size, int mode) {
   float yBars = step(size * 2.0, mod(uv.y * 2.0, size * 4.0));
@@ -170,16 +171,29 @@ void main() {
     bgColor += vec3(f4 * 0.08);
   }
 
-  vec2 p1 =
+  // SDF for shadow (with offset)
+  vec2 p1Shadow =
     (vec2(0, 0) - u_shape1Center +
       vec2(u_shadowPosition.x * u_dpr, u_shadowPosition.y * u_dpr)) /
     u_resolution.y;
-  vec2 p2 =
+  vec2 p2Shadow =
     (vec2(0, 0) - u_mouseSpring + vec2(u_shadowPosition.x * u_dpr, u_shadowPosition.y * u_dpr)) /
     u_resolution.y;
-  float merged = mainSDF(p1, p2, gl_FragCoord.xy);
+  float mergedShadow = mainSDF(p1Shadow, p2Shadow, gl_FragCoord.xy);
 
-  float shadow = exp(-1.0 / u_shadowExpand * abs(merged) * u_resolution1x.y) * 0.6 * u_shadowFactor;
+  float shadow = exp(-1.0 / u_shadowExpand * abs(mergedShadow) * u_resolution1x.y) * 0.6 * u_shadowFactor;
 
-  fragColor = vec4(bgColor - vec3(shadow), 1.0);
+  float alpha;
+  if (u_tauriMode == 1) {
+    // SDF for alpha mask (no offset, matches main pass exactly)
+    vec2 p1Mask = (vec2(0, 0) - u_shape1Center) / u_resolution.y;
+    vec2 p2Mask = (vec2(0, 0) - u_mouseSpring) / u_resolution.y;
+    float mergedMask = mainSDF(p1Mask, p2Mask, gl_FragCoord.xy);
+    // alpha=1 inside island (refraction source), alpha=0 outside (prevents screenshot leak)
+    alpha = 1.0 - smoothstep(-0.001, 0.002, mergedMask);
+    if (u_bgTextureReady != 1) alpha = 0.0;
+  } else {
+    alpha = 1.0;
+  }
+  fragColor = vec4(bgColor - vec3(shadow), alpha);
 }

@@ -132,6 +132,7 @@
   let screenCapTexture = null;
   let screenCapRatio = 1;
   let screenCapReady = false;
+  let renderReady = false;
 
   // ---------------------------------------------------------------------------
   // Gaussian kernel — exact copy from src/utils/index.ts
@@ -429,10 +430,15 @@
 
     handleResize();
 
-    // Clear default framebuffer to prevent showing stale/undefined content
+    // Clear all framebuffers to prevent stale screenshot content
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
+    if (bgFBO) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, bgFBO.fbo);
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+    }
 
     const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
     lastTime = timestamp;
@@ -440,11 +446,6 @@
 
     // FPS counter
     _frameCount++;
-    // Show capsule after first frame renders
-    if (_frameCount === 1) {
-      var capsule = document.getElementById('island-capsule');
-      if (capsule) capsule.classList.add('ready');
-    }
     if (timestamp - _fpsTime >= 2000) {
       console.log(
         "[Render] FPS:",
@@ -703,6 +704,15 @@
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
     gl.bindVertexArray(null);
+
+    // Mark render as ready after first complete frame
+    if (!renderReady) {
+      renderReady = true;
+      var glCanvas = document.getElementById('glCanvas');
+      var capsule = document.getElementById('island-capsule');
+      if (glCanvas) glCanvas.classList.add('ready');
+      if (capsule) capsule.classList.add('ready');
+    }
   }
 
   // ---------------------------------------------------------------------------
