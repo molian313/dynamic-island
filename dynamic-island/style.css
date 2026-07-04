@@ -52,10 +52,7 @@ canvas#glCanvas.ready {
   color: rgba(255,255,255,0.9);
 }
 
-/* Classic mode: opaque black background, no WebGL, no shadows */
-.classic-mode {
-  background: #000 !important;
-}
+/* Classic mode: no WebGL, no shadows, solid capsule background */
 .classic-mode canvas#glCanvas {
   display: none !important;
 }
