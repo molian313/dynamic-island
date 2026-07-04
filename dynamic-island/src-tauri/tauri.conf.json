@@ -1,7 +1,7 @@
 {
   "productName": "Island STL",
   "version": "0.1.0",
-  "identifier": "com.island-stl.app",
+  "identifier": "com.liquidglass.island",
   "build": {
     "beforeDevCommand": "npx http-server . -p 1420 --cors -c-1",
     "devUrl": "http://localhost:1420",
