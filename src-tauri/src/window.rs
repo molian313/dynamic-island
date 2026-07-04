@@ -83,13 +83,22 @@ pub fn setup_click_through(app: &tauri::App, debug_click_state: Arc<AtomicBool>)
         let zone_top = (ZONE_TOP * scale) as i32;
         let mut was_on_capsule = false;
         let mut was_interacting = false;
+        let mut was_minimized = false;
 
         loop {
             let minimized = is_minimized.load(Ordering::Relaxed);
             if minimized {
                 set_click_through(hwnd, true);
+                was_minimized = true;
                 thread::sleep(Duration::from_millis(50));
                 continue;
+            }
+
+            // Reset state on minimize→expand transition
+            if was_minimized {
+                was_minimized = false;
+                was_on_capsule = false;
+                was_interacting = false;
             }
 
             if let Some((mx, my)) = get_cursor_pos() {
