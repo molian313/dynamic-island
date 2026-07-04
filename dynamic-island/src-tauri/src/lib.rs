@@ -43,7 +43,7 @@ fn open_glass_panel(app: tauri::AppHandle) {
         return;
     }
     let _ = tauri::WebviewWindowBuilder::new(&app, "glass-settings", tauri::WebviewUrl::App("glass-settings.html".into()))
-        .title("玻璃参数 - Liquid Glass Island")
+        .title("玻璃参数 - Island STL")
         .inner_size(360.0, 600.0)
         .resizable(false)
         .always_on_top(true)
@@ -141,7 +141,7 @@ pub fn run() {
             let _tray = TrayIconBuilder::new()
                 .icon(Image::new_owned(create_tray_icon(), 32, 32))
                 .menu(&menu)
-                .tooltip("Liquid Glass Island")
+                .tooltip("Island STL")
                 .on_menu_event(move |app, event| {
                     match event.id().as_ref() {
                         "quit" => app.exit(0),

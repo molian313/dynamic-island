@@ -1,7 +1,7 @@
 {
-  "name": "liquid-glass-island",
+  "name": "island-stl",
   "version": "0.1.0",
-  "description": "Liquid Glass Dynamic Island",
+  "description": "Island STL",
   "scripts": {
     "tauri": "tauri",
     "dev": "tauri dev",

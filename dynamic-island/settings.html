@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>设置 - Liquid Glass Island</title>
+  <title>设置 - Island STL</title>
   <link rel="stylesheet" href="controls.css">
   <link rel="stylesheet" href="settings.css">
 </head>
@@ -11,9 +11,9 @@
   <div class="container">
     <aside class="sidebar">
       <div class="sidebar-header">
-        <img src="icons/128x128.png" alt="Liquid Glass Island">
+        <img src="icons/128x128.png" alt="Island STL">
         <div class="sidebar-header-text">
-          <h1>Liquid Glass Island</h1>
+          <h1>Island STL</h1>
           <p>设置</p>
         </div>
       </div>
@@ -57,6 +57,21 @@
                   <input type="checkbox" id="debug-toggle">
                   <span class="slider"></span>
                 </label>
+              </div>
+            </div>
+          </div>
+          <div class="setting-group">
+            <div class="setting-group-title">外观</div>
+            <div class="setting-item">
+              <div class="setting-label">
+                <h3>主题</h3>
+                <p>切换液态玻璃或经典深色模式。</p>
+              </div>
+              <div class="setting-control">
+                <select id="theme-select" class="input" style="min-width:140px;">
+                  <option value="glass">液态玻璃</option>
+                  <option value="classic">经典模式</option>
+                </select>
               </div>
             </div>
           </div>
@@ -112,23 +127,8 @@
       </div>
 
       <div id="status" class="status">已保存</div>
-          </div>
-          <div class="setting-group">
-            <div class="setting-group-title">外观</div>
-            <div class="setting-item">
-              <div class="setting-label">
-                <h3>主题</h3>
-                <p>切换液态玻璃或经典深色模式。</p>
-              </div>
-              <div class="setting-control">
-                <select id="theme-select" class="input" style="min-width:140px;">
-                  <option value="glass">液态玻璃</option>
-                  <option value="classic">经典模式</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
+    </div>
+  </div>
 
   <script src="src/settings-init.js"></script>
 </body>

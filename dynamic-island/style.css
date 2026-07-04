@@ -64,5 +64,5 @@ canvas#glCanvas.ready {
 }
 .classic-mode .left-panel,
 .classic-mode .right-panel {
-  background: rgba(30, 30, 30, 0.85) !important;
+  background: #000 !important;
 }
