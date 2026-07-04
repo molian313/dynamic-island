@@ -124,13 +124,11 @@
     captureAndUpdateScreenTexture();
 
     // Emit interacting state for click-through
-    var canvas = document.getElementById('glCanvas');
-    canvas.addEventListener('mouseenter', function() {
-      window.__TAURI__.event.emit('set-interacting', true);
-    });
-    canvas.addEventListener('mouseleave', function() {
-      window.__TAURI__.event.emit('set-interacting', false);
-    });
+    // Only capsule element controls interacting state (capsule-interaction.js).
+    // Canvas-level listeners conflict with capsule's because the canvas covers
+    // the entire window — when the cursor leaves the capsule but stays on the
+    // canvas, canvas mouseenter re-emits set-interacting:true, preventing the
+    // Rust click-through thread from ever disabling click-through on re-entry.
 
     // Initialize island modules
     if (window.IslandMain) window.IslandMain.init();
