@@ -94,10 +94,10 @@ pub fn setup_click_through(app: &tauri::App, debug_click_state: Arc<AtomicBool>)
             if minimized && !was_minimized {
                 if let Some(rect) = get_window_rect(hwnd) {
                     let win_w = rect.right - rect.left;
-                    let ind_w = 60i32;
-                    let ind_h = 4i32;
+                    let ind_w = (60.0 * scale) as i32;
+                    let ind_h = (4.0 * scale) as i32;
                     let ind_x = rect.left + (win_w - ind_w) / 2;
-                    let ind_y = rect.top + 13;
+                    let ind_y = rect.top + (13.0 * scale) as i32;
                     unsafe {
                         let rgn = CreateRectRgn(ind_x, ind_y, ind_x + ind_w, ind_y + ind_h);
                         let _ = SetWindowRgn(hwnd, Some(rgn), false);
