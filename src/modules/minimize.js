@@ -21,6 +21,7 @@ window.IslandMinimize = {
       if (glCanvas) glCanvas.style.display = 'none';
       if (shadowL) shadowL.style.display = 'none';
       if (shadowR) shadowR.style.display = 'none';
+      if (window.__setCapturePaused) window.__setCapturePaused(true);
 
       setTimeout(function() {
         dom.capsule.style.display = 'none';
@@ -48,6 +49,7 @@ window.IslandMinimize = {
       if (glCanvas) glCanvas.style.display = '';
       if (shadowL) shadowL.style.display = '';
       if (shadowR) shadowR.style.display = '';
+      if (window.__setCapturePaused) window.__setCapturePaused(false);
 
       requestAnimationFrame(function() {
         dom.capsule.style.opacity = '1';

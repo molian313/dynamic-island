@@ -30,13 +30,19 @@
 
     // Listen for theme changes
     var _capturePaused = false;
+    var _classicMode = false;
+    window.__setCapturePaused = function(paused) {
+      _capturePaused = paused || _classicMode;
+    };
     await listen('theme-changed', function(event) {
       var theme = event.payload && event.payload.theme ? event.payload.theme : 'glass';
       if (theme === 'classic') {
         document.body.classList.add('classic-mode');
+        _classicMode = true;
         _capturePaused = true;
       } else {
         document.body.classList.remove('classic-mode');
+        _classicMode = false;
         _capturePaused = false;
       }
     });
