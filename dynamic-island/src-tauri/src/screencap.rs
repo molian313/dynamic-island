@@ -27,7 +27,7 @@ pub fn capture_screen(x: i32, y: i32, width: u32, height: u32) -> Result<String,
 
         let hbitmap = CreateCompatibleBitmap(hdc_desktop, capture_w, capture_h);
         if hbitmap.0.is_null() {
-            DeleteDC(hdc_mem);
+            let _ = DeleteDC(hdc_mem);
             ReleaseDC(Some(desktop), hdc_desktop);
             return Err("CreateCompatibleBitmap failed".into());
         }

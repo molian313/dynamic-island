@@ -15,7 +15,6 @@ use std::thread;
 use std::time::Duration;
 use tauri::Manager;
 use tauri::Emitter;
-use tauri::Listener;
 use tauri::menu::{MenuBuilder, MenuItemBuilder};
 use tauri::tray::TrayIconBuilder;
 use tauri::image::Image;
@@ -139,7 +138,6 @@ pub fn run() {
             let settings_item = MenuItemBuilder::with_id("settings", "设置").build(app)?;
             let menu = MenuBuilder::new(app).item(&settings_item).separator().item(&quit_item).build()?;
 
-            let app_handle = app.handle().clone();
             let _tray = TrayIconBuilder::new()
                 .icon(Image::new_owned(create_tray_icon(), 32, 32))
                 .menu(&menu)
