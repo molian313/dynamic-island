@@ -140,7 +140,8 @@
   var savePresetInput = null;
   var savePresetConfirmBtn = null;
   var loadPresetRow = null;
-  var presetSelect = null;
+  var presetListEl = null;
+  var activePresetIndex = -1;
 
   var panelVisible = true;
 
@@ -633,25 +634,13 @@
 
     panel.appendChild(savePresetRow);
 
-    // Load preset row (dropdown)
+    // Load preset row (list)
     loadPresetRow = el('div');
     loadPresetRow.className = 'load-preset-row';
 
-    presetSelect = el('select');
-    presetSelect.id = 'preset-select';
-    presetSelect.addEventListener('change', function () {
-      loadPreset(presetSelect.value);
-    });
-    loadPresetRow.appendChild(presetSelect);
-
-    // Delete preset button
-    var deletePresetBtn = el('button');
-    deletePresetBtn.style.cssText = 'padding:4px 10px;border:1px solid rgba(255,100,100,0.3);border-radius:6px;background:rgba(255,100,100,0.1);color:#ff8888;font-size:11px;cursor:pointer;margin-top:4px;width:100%;';
-    deletePresetBtn.textContent = '\u5220\u9664\u6B64\u9884\u8BBE';
-    deletePresetBtn.addEventListener('click', function () {
-      deletePreset(presetSelect.value);
-    });
-    loadPresetRow.appendChild(deletePresetBtn);
+    presetListEl = el('div');
+    presetListEl.className = 'preset-list';
+    loadPresetRow.appendChild(presetListEl);
 
     panel.appendChild(loadPresetRow);
 
@@ -771,20 +760,45 @@
 
   function refreshPresetList() {
     var presets = getPresets();
-    // Clear existing options
-    while (presetSelect.firstChild) {
-      presetSelect.removeChild(presetSelect.firstChild);
+    presetListEl.innerHTML = '';
+
+    if (presets.length === 0) {
+      var empty = el('div');
+      empty.className = 'preset-empty';
+      empty.textContent = '\u6682\u65E0\u9884\u8BBE';
+      presetListEl.appendChild(empty);
+      return;
     }
-    var placeholder = el('option');
-    placeholder.value = '';
-    placeholder.textContent = '-- \u9009\u62E9\u9884\u8BBE --';
-    presetSelect.appendChild(placeholder);
 
     for (var i = 0; i < presets.length; i++) {
-      var opt = el('option');
-      opt.value = String(i);
-      opt.textContent = presets[i].name;
-      presetSelect.appendChild(opt);
+      var card = el('div');
+      card.className = 'preset-card' + (i === activePresetIndex ? ' active' : '');
+      card.dataset.index = i;
+
+      var name = el('span');
+      name.className = 'preset-name';
+      name.textContent = presets[i].name;
+      card.appendChild(name);
+
+      var delBtn = el('button');
+      delBtn.className = 'preset-delete';
+      delBtn.textContent = '\u00D7';
+      delBtn.title = '\u5220\u9664';
+      delBtn.addEventListener('click', (function(idx) {
+        return function(e) {
+          e.stopPropagation();
+          deletePreset(String(idx));
+        };
+      })(i));
+      card.appendChild(delBtn);
+
+      card.addEventListener('click', (function(idx) {
+        return function() {
+          loadPreset(String(idx));
+        };
+      })(i));
+
+      presetListEl.appendChild(card);
     }
   }
 
@@ -808,6 +822,10 @@
     var presets = getPresets();
     presets.push({ name: name, config: snapshot, timestamp: Date.now() });
     setPresets(presets);
+
+    // Mark the newly saved preset as active
+    activePresetIndex = presets.length - 1;
+    refreshPresetList();
 
     // Show indicator
     saveIndicator.classList.add('show');
@@ -836,6 +854,10 @@
     applyConfigToUI(config);
     // Copy to live config
     copyConfig(config, cfg);
+
+    // Track active preset
+    activePresetIndex = idx;
+    refreshPresetList();
   }
 
   // ---------------------------------------------------------------------------
@@ -849,6 +871,14 @@
 
     presets.splice(idx, 1);
     setPresets(presets);
+
+    // Adjust active index
+    if (activePresetIndex === idx) {
+      activePresetIndex = -1;
+    } else if (activePresetIndex > idx) {
+      activePresetIndex--;
+    }
+
     refreshPresetList();
   }
 
