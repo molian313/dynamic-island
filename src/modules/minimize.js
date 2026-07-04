@@ -5,7 +5,6 @@ window.IslandMinimize = {
     var state = window.IslandState;
     var invoke = window.__TAURI__.core.invoke;
     var listen = window.__TAURI__.event.listen;
-    var emit = window.__TAURI__.event.emit;
 
     function minimizePanel() {
       if (state.isMinimized) return;
@@ -23,7 +22,6 @@ window.IslandMinimize = {
       if (shadowL) shadowL.style.display = 'none';
       if (shadowR) shadowR.style.display = 'none';
       if (window.__setCapturePaused) window.__setCapturePaused(true);
-      emit('set-minimized', true);
 
       setTimeout(function() {
         dom.capsule.style.display = 'none';
@@ -52,7 +50,6 @@ window.IslandMinimize = {
       if (shadowL) shadowL.style.display = '';
       if (shadowR) shadowR.style.display = '';
       if (window.__setCapturePaused) window.__setCapturePaused(false);
-      emit('set-minimized', false);
 
       requestAnimationFrame(function() {
         dom.capsule.style.opacity = '1';
