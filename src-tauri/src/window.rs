@@ -43,6 +43,7 @@ pub fn setup_click_through(app: &tauri::App, debug_click_state: Arc<AtomicBool>)
 
     let is_expanded = Arc::new(AtomicBool::new(false));
     let is_interacting = Arc::new(AtomicBool::new(false));
+    let is_minimized = Arc::new(AtomicBool::new(false));
 
     let is_expanded_listen = is_expanded.clone();
     let window_clone = window.clone();
@@ -64,6 +65,16 @@ pub fn setup_click_through(app: &tauri::App, debug_click_state: Arc<AtomicBool>)
         });
     });
 
+    let is_minimized_listen = is_minimized.clone();
+    let window_clone3 = window.clone();
+    tauri::async_runtime::spawn(async move {
+        use tauri::Listener;
+        let _ = window_clone3.listen("set-minimized", move |event| {
+            let minimized: bool = serde_json::from_str(event.payload()).unwrap_or(false);
+            is_minimized_listen.store(minimized, Ordering::Relaxed);
+        });
+    });
+
     let window_thread = window.clone();
     thread::spawn(move || {
         let hwnd = HWND(hwnd_val as *mut _);
@@ -74,6 +85,13 @@ pub fn setup_click_through(app: &tauri::App, debug_click_state: Arc<AtomicBool>)
         let mut was_interacting = false;
 
         loop {
+            let minimized = is_minimized.load(Ordering::Relaxed);
+            if minimized {
+                set_click_through(hwnd, true);
+                thread::sleep(Duration::from_millis(50));
+                continue;
+            }
+
             if let Some((mx, my)) = get_cursor_pos() {
                 let expanded = is_expanded.load(Ordering::Relaxed);
                 let interacting = is_interacting.load(Ordering::Relaxed);
