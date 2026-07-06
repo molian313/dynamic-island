@@ -23,7 +23,6 @@ window.IslandMinimize = {
       if (shadowL) shadowL.style.display = 'none';
       if (shadowR) shadowR.style.display = 'none';
       if (window.__setCapturePaused) window.__setCapturePaused(true);
-      emit('set-minimized', true);
 
       setTimeout(function() {
         dom.capsule.style.display = 'none';
@@ -31,6 +30,7 @@ window.IslandMinimize = {
         dom.capsule.style.transform = '';
         dom.capsule.style.transition = '';
         dom.collapsedIndicator.style.display = 'block';
+        emit('set-minimized', true);
       }, 300);
     }
 

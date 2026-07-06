@@ -100,7 +100,7 @@ pub fn setup_click_through(app: &tauri::App, debug_click_state: Arc<AtomicBool>)
                     let ind_y = rect.top + (13.0 * scale) as i32;
                     unsafe {
                         let rgn = CreateRectRgn(ind_x, ind_y, ind_x + ind_w, ind_y + ind_h);
-                        let _ = SetWindowRgn(hwnd, Some(rgn), false);
+                        let _ = SetWindowRgn(hwnd, Some(rgn), true);
                         // Don't delete rgn — OS takes ownership
                     }
                 }
