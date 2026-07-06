@@ -58,7 +58,7 @@ pub fn open_settings(app: tauri::AppHandle) {
         let _ = win.set_focus();
     } else {
         let _ = tauri::WebviewWindowBuilder::new(&app, "settings", tauri::WebviewUrl::App("settings.html".into()))
-            .title("灵动岛 - 设置")
+            .title("Island STL - 设置")
             .inner_size(800.0, 600.0)
             .min_inner_size(500.0, 400.0)
             .resizable(true)
