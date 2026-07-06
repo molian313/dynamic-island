@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dynamic Island</title>
+  <link rel="icon" type="image/png" href="icons/32x32.png" />
+  <link rel="stylesheet" href="src/styles/island.css" />
+  <script type="module" src="src/main.ts" defer></script>
+</head>
+<body>
+  <!-- Main capsule -->
+  <div id="island-capsule">
+    <!-- Left panel: time/shortcuts/settings -->
+    <div id="left-panel" class="left-panel time-mode glass">
+      <!-- Time view (shown in time-mode) -->
+      <div id="time-wrapper" class="time-view">
+        <span id="mem-text" class="mem-label">内存 --</span>
+        <span id="time-text" class="time-text">--:--:--</span>
+        <div class="net-info">
+          <span id="net-up">--</span>
+          <span id="net-down">--</span>
+        </div>
+      </div>
+
+      <!-- Shortcuts view (shown in shortcuts-mode) -->
+      <div id="shortcut-area" class="shortcut-view">
+        <div id="shortcut-list" class="shortcut-list"></div>
+      </div>
+    </div>
+
+    <!-- Right panel: printer circles -->
+    <div id="right-panel" class="right-panel single-mode glass">
+      <div class="printer-unit">
+        <div class="printer-circle">
+          <svg class="printer-svg" viewBox="0 0 30 30">
+            <circle cx="15" cy="15" r="12" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3.2"/>
+            <circle class="printer-progress" cx="15" cy="15" r="12" fill="none" stroke="#22c55e" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="75.4" stroke-dashoffset="75.4" transform="rotate(-90 15 15)"/>
+          </svg>
+          <span class="printer-percent">--</span>
+        </div>
+        <div class="printer-detail">
+          <span class="printer-name">--</span>
+          <span class="printer-status">--</span>
+        </div>
+      </div>
+      <div class="printer-unit printer-unit-2">
+        <div class="printer-circle">
+          <svg class="printer-svg" viewBox="0 0 30 30">
+            <circle cx="15" cy="15" r="12" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3.2"/>
+            <circle class="printer-progress" cx="15" cy="15" r="12" fill="none" stroke="#22c55e" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="75.4" stroke-dashoffset="75.4" transform="rotate(-90 15 15)"/>
+          </svg>
+          <span class="printer-percent">--</span>
+        </div>
+        <div class="printer-detail printer-detail-2">
+          <span class="printer-name">--</span>
+          <span class="printer-status">--</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Collapsed indicator (small green bar) -->
+  <div id="collapsed-indicator" title="点击展开"></div>
+
+  <!-- Debug expand/collapse button (hidden by default) -->
+  <div id="debug-expand-btn" class="debug-expand-btn" style="display:none;">展开/收起</div>
+
+</body>
+</html>
