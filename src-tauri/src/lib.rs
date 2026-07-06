@@ -115,6 +115,14 @@ pub fn run() {
             let window = app.get_webview_window("main").unwrap();
             let _ = window.set_background_color(Some(tauri::webview::Color(0, 0, 0, 0)));
 
+            // Set window icon
+            let icon_path = app.path().resource_dir().unwrap_or_default().join("icons/icon.ico");
+            if let Ok(icon_bytes) = std::fs::read(&icon_path) {
+                if let Ok(icon) = tauri::image::Image::from_bytes(&icon_bytes) {
+                    let _ = window.set_icon(Some(icon));
+                }
+            }
+
             // Exclude window from screen captures
             if let Ok(hwnd) = window.hwnd() {
                 unsafe {

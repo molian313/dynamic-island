@@ -14,7 +14,6 @@
       {
         "label": "main",
         "title": "Island STL",
-        "icon": "icons/icon.ico",
         "width": 500,
         "height": 150,
         "decorations": false,
