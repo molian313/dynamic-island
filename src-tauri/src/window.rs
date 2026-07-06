@@ -4,7 +4,6 @@ use std::thread;
 use std::time::Duration;
 use tauri::{Emitter, Manager};
 use windows::Win32::Foundation::HWND;
-use windows::Win32::Graphics::Gdi::{CreateRectRgn, DeleteObject, SetWindowRgn};
 use windows::Win32::UI::WindowsAndMessaging::*;
 
 pub struct DebugClickState(pub Arc<AtomicBool>);
@@ -84,57 +83,32 @@ pub fn setup_click_through(app: &tauri::App, debug_click_state: Arc<AtomicBool>)
         let zone_top = (ZONE_TOP * scale) as i32;
         let mut was_on_capsule = false;
         let mut was_interacting = false;
-        let mut was_minimized = false;
 
         loop {
-            let minimized = is_minimized.load(Ordering::Relaxed);
-
-            // On minimize: clip window to indicator area only
-            // On expand: restore full window region
-            if minimized && !was_minimized {
-                if let Some(rect) = get_window_rect(hwnd) {
-                    let win_w = rect.right - rect.left;
-                    let ind_w = (60.0 * scale) as i32;
-                    let ind_h = (4.0 * scale) as i32;
-                    let ind_x = rect.left + (win_w - ind_w) / 2;
-                    let ind_y = rect.top + (13.0 * scale) as i32;
-                    unsafe {
-                        let rgn = CreateRectRgn(ind_x, ind_y, ind_x + ind_w, ind_y + ind_h);
-                        let _ = SetWindowRgn(hwnd, Some(rgn), true);
-                        // Don't delete rgn — OS takes ownership
-                    }
-                }
-                set_click_through(hwnd, false);
-            } else if !minimized && was_minimized {
-                unsafe {
-                    // NULL region = restore full window
-                    let _ = SetWindowRgn(hwnd, None, false);
-                }
-            }
-            was_minimized = minimized;
-
-            if minimized {
-                thread::sleep(Duration::from_millis(50));
-                continue;
-            }
-
             if let Some((mx, my)) = get_cursor_pos() {
                 let expanded = is_expanded.load(Ordering::Relaxed);
                 let interacting = is_interacting.load(Ordering::Relaxed);
+                let minimized = is_minimized.load(Ordering::Relaxed);
                 let debug_mode = debug_click_state.load(Ordering::Relaxed);
 
                 let rect = get_window_rect(hwnd);
                 let on_capsule = if let Some(rect) = rect {
                     let win_w = (rect.right - rect.left) as f64 / scale;
-                    let (cw, ch) = if expanded {
-                        (CAPSULE_EXPANDED_W + 240.0, CAPSULE_EXPANDED_H)
+                    // When minimized: use indicator bounds (60×4 centered, top 13px)
+                    // Otherwise: use capsule bounds
+                    let (cx, cy, cw, ch) = if minimized {
+                        let iw = 60.0;
+                        let ih = 4.0;
+                        (win_w / 2.0 - iw / 2.0, CAPSULE_TOP_PAD, iw, ih)
+                    } else if expanded {
+                        (win_w / 2.0 - (CAPSULE_EXPANDED_W + 240.0) / 2.0, CAPSULE_TOP_PAD, CAPSULE_EXPANDED_W + 240.0, CAPSULE_EXPANDED_H)
                     } else {
-                        (196.0, CAPSULE_COLLAPSED_H)
+                        (win_w / 2.0 - 196.0 / 2.0, CAPSULE_TOP_PAD, 196.0, CAPSULE_COLLAPSED_H)
                     };
                     let win_x = rect.left as f64;
                     let win_y = rect.top as f64;
-                    let capsule_x = win_x + (win_w * scale - cw * scale) / 2.0;
-                    let capsule_y = win_y + CAPSULE_TOP_PAD * scale;
+                    let capsule_x = win_x + cx * scale;
+                    let capsule_y = win_y + cy * scale;
                     let fmx = mx as f64;
                     let fmy = my as f64;
                     fmx >= capsule_x && fmx <= capsule_x + cw * scale && fmy >= capsule_y && fmy <= capsule_y + ch * scale
