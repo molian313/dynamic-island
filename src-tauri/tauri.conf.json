@@ -5,8 +5,8 @@
   "build": {
     "beforeDevCommand": "npx http-server . -p 1420 --cors -c-1",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "",
-    "frontendDist": "../"
+    "beforeBuildCommand": "node scripts/copy-frontend.js",
+    "frontendDist": "../frontend"
   },
   "app": {
     "withGlobalTauri": true,
