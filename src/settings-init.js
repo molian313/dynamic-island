@@ -43,17 +43,17 @@
     if (glassLoaded) return;
     glassLoaded = true;
     var DEFAULTS = {
-      refThickness: 20, refFactor: 1.4, refDispersion: 7,
-      refFresnelRange: 30, refFresnelHardness: 20, refFresnelFactor: 20,
-      glareRange: 30, glareHardness: 20, glareFactor: 90,
-      glareConvergence: 50, glareOppositeFactor: 80, glareAngle: -45,
+      refThickness: 18, refFactor: 1.4, refDispersion: 4,
+      refFresnelRange: 15, refFresnelHardness: 5, refFresnelFactor: 5,
+      glareRange: 35, glareHardness: 12, glareFactor: 50,
+      glareConvergence: 70, glareOppositeFactor: 60, glareAngle: -45,
       blurRadius: 1, blurEdge: true,
       tint: { r: 255, g: 255, b: 255, a: 0 },
-      shadowExpand: 25, shadowFactor: 15, shadowPosition: { x: 0, y: -10 },
-      shapeWidth: 140, shapeHeight: 50, shapeRadius: 25, shapeRoundness: 5,
+      shadowExpand: 25, shadowFactor: 5, shadowPosition: { x: 0, y: -10 },
+      shapeWidth: 140, shapeHeight: 50, shapeRadius: 25, shapeRoundness: 2,
       shape1Width: 50, shape1Height: 50, shape1Radius: 25,
-      mergeRate: 0.05, showShape1: true, islandGap: 6,
-      springSizeFactor: 10, bgType: 0,
+      mergeRate: 0, showShape1: true, islandGap: 8,
+      springSizeFactor: 0, bgType: 0,
       cssShadowBlur: 5, cssShadowOpacity: 0.25, cssShadowOffsetY: 0, cssShadowTop: 5
     };
     var cfg = JSON.parse(JSON.stringify(DEFAULTS));

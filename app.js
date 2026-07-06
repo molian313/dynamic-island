@@ -9,44 +9,39 @@
   // Controls defaults — copied exactly from Controls.tsx
   // ---------------------------------------------------------------------------
   const C = {
-    refThickness: 20,
+    refThickness: 18,
     refFactor: 1.4,
-    refDispersion: 7,
-    refFresnelRange: 30,
-    refFresnelHardness: 20, // → /100 when passed to shader
-    refFresnelFactor: 20, // → /100
-    glareRange: 30,
-    glareHardness: 20, // → /100
-    glareFactor: 90, // → /100
-    glareConvergence: 50, // → /100
-    glareOppositeFactor: 80, // → /100
+    refDispersion: 4,
+    refFresnelRange: 15,
+    refFresnelHardness: 5,
+    refFresnelFactor: 5,
+    glareRange: 35,
+    glareHardness: 12,
+    glareFactor: 50,
+    glareConvergence: 70,
+    glareOppositeFactor: 60,
     glareAngle: -45,
-    blurRadius: 1, // original default is 1, NOT 40
+    blurRadius: 1,
     blurEdge: true,
-    tint: { r: 255, g: 255, b: 255, a: 0 }, // 0-255 range
+    tint: { r: 255, g: 255, b: 255, a: 0 },
     shadowExpand: 25,
-    shadowFactor: 15, // → /100 when passed to shader
+    shadowFactor: 5,
     shadowPosition: { x: 0, y: -10 },
-    // Shape 1 (主岛 / left capsule)
     shapeWidth: 140,
     shapeHeight: 50,
     shapeRadius: 25,
-    // Shape 2 (副岛 / right capsule)
     shape1Width: 50,
     shape1Height: 50,
     shape1Radius: 25,
-    shapeRoundness: 5,
-    mergeRate: 0.05,
-    showShape1: true, // two shapes
-    // Island gap (CSS pixels, for initial positioning)
-    islandGap: 6,
-    // Expanded sizes (on hover)
+    shapeRoundness: 2,
+    mergeRate: 0,
+    showShape1: true,
+    islandGap: 8,
     expandedWidth: 270,
     expandedHeight: 74,
     expandedShape1Width: 140,
     expandedShape1Height: 74,
-    expandSpeed: 8, // lerp speed
-    // Compact mode sizes (after double-click right island)
+    expandSpeed: 8,
     compactWidth: 86,
     compactHeight: 50,
     compactExpandedWidth: 200,
@@ -55,10 +50,9 @@
     compactShape1Height: 50,
     compactExpandedShape1Width: 210,
     compactExpandedShape1Height: 74,
-    springSizeFactor: 10,
+    springSizeFactor: 0,
     step: 9,
-    bgType: 0, // 0 = chessboard (original default)
-    // CSS shadow settings (synced from controls.js)
+    bgType: 0,
     cssShadowBlur: 5,
     cssShadowOpacity: 0.25,
     cssShadowOffsetY: 0,
