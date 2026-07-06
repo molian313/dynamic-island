@@ -6,7 +6,7 @@
     "beforeDevCommand": "npx http-server . -p 1420 --cors -c-1",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "",
-    "frontendDist": "../frontend"
+    "frontendDist": "../"
   },
   "app": {
     "withGlobalTauri": true,
