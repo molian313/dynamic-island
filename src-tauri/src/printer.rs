@@ -256,22 +256,7 @@ impl PrinterManager {
                 let mut cfg_rx = self.subscribe_config_changed();
                 handles.push(tokio::spawn(async move {
                     tokio::select! {
-                        result = manager.clone().connect_and_monitor(i, &config, &app) => {
-                            match result {
-                                Ok(_) => {}
-                                Err(_e) => {
-                                    let status = PrinterStatus {
-                                        name: config.name.clone(),
-                                        status: "disconnected".to_string(),
-                                        progress: 0, remaining_time: 0,
-                                        nozzle_temp: 0.0, bed_temp: 0.0,
-                                        layer_num: 0, total_layers: 0,
-                                    };
-                                    manager.update_status(i, status.clone());
-                                    let _ = app.emit("printer-status", PrinterEvent { index: i, status });
-                                }
-                            }
-                        }
+                        _ = manager.clone().connect_and_monitor(i, &config, &app) => {}
                         _ = cfg_rx.changed() => {}
                     }
                 }));
@@ -294,7 +279,32 @@ impl PrinterManager {
         }
     }
 
-    async fn connect_and_monitor(self: Arc<Self>, index: usize, config: &PrinterConfig, app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+    async fn connect_and_monitor(self: Arc<Self>, index: usize, config: &PrinterConfig, app: &AppHandle) {
+        let mut backoff = Duration::from_secs(1);
+        let max_backoff = Duration::from_secs(60);
+
+        loop {
+            match self.clone().connect_and_monitor_once(index, config, app).await {
+                Ok(_) => return,
+                Err(e) => {
+                    eprintln!("[Printer {}] 连接断开: {}, {}秒后重连...", index, e, backoff.as_secs());
+                    let status = PrinterStatus {
+                        name: config.name.clone(),
+                        status: "disconnected".to_string(),
+                        progress: 0, remaining_time: 0,
+                        nozzle_temp: 0.0, bed_temp: 0.0,
+                        layer_num: 0, total_layers: 0,
+                    };
+                    self.update_status(index, status.clone());
+                    let _ = app.emit("printer-status", PrinterEvent { index, status });
+                    tokio::time::sleep(backoff).await;
+                    backoff = (backoff * 2).min(max_backoff);
+                }
+            }
+        }
+    }
+
+    async fn connect_and_monitor_once(self: Arc<Self>, index: usize, config: &PrinterConfig, app: &AppHandle) -> Result<(), String> {
         let mut opts = MqttOptions::new(&config.serial, &config.ip_address, 8883);
         opts.set_credentials("bblp", &config.access_code);
         opts.set_keep_alive(Duration::from_secs(30));
@@ -309,10 +319,10 @@ impl PrinterManager {
         let report_topic = format!("device/{}/report", config.serial);
         let request_topic = format!("device/{}/request", config.serial);
 
-        client.subscribe(&report_topic, QoS::AtMostOnce).await?;
+        client.subscribe(&report_topic, QoS::AtMostOnce).await.map_err(|e| e.to_string())?;
         client.publish(&request_topic, QoS::AtMostOnce, false,
             serde_json::json!({"pushing":{"command":"pushall"},"info":{"command":"get_version"}}).to_string().as_bytes()
-        ).await?;
+        ).await.map_err(|e| e.to_string())?;
 
         let mut print_data: serde_json::Value = serde_json::json!({});
 
@@ -346,7 +356,7 @@ impl PrinterManager {
                     }
                 }
                 Ok(Event::Incoming(Packet::Disconnect)) => return Err("Disconnected".into()),
-                Err(e) => return Err(Box::new(e)),
+                Err(e) => return Err(e.to_string()),
                 _ => {}
             }
         }
